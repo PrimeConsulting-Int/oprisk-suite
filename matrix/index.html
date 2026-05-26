@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Matriz Riesgo Operacional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f3;color:#1a1a18;font-size:14px}
+.header{background:#fff;border-bottom:0.5px solid #ddd;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header h1{font-size:16px;font-weight:500}
+.header .sub{font-size:12px;color:#888;margin-top:2px}
+.upload-zone{border:1.5px dashed #bbb;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:border-color .2s;margin:20px;background:#fff}
+.upload-zone:hover{border-color:#555}
+.upload-zone p{color:#666;font-size:13px;margin-top:8px}
+.upload-zone strong{font-size:15px;color:#333}
+#fileInput{display:none}
+.main{display:none;padding:16px 20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:10px;padding:12px 14px;border:0.5px solid #e0e0de}
+.kpi .val{font-size:24px;font-weight:500;line-height:1.1}
+.kpi .lbl{font-size:11px;color:#888;margin-top:3px}
+.kpi.crit .val{color:#A32D2D}
+.kpi.high .val{color:#854F0B}
+.kpi.med .val{color:#3B6D11}
+.kpi.low .val{color:#0F6E56}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters select,.filters input{font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a18}
+.filters button{font-size:12px;padding:5px 12px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer}
+.filters button:hover{background:#f0f0ee}
+.tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:0.5px solid #ddd}
+.tab{font-size:12px;padding:7px 16px;cursor:pointer;border-bottom:2px solid transparent;color:#888;background:none;border-left:none;border-right:none;border-top:none}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;font-weight:500}
+.panel{display:none}.panel.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:#fff;border-radius:10px;border:0.5px solid #e0e0de;padding:14px}
+.card h3{font-size:12px;font-weight:500;color:#888;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em}
+.matrix-wrap{overflow-x:auto}
+.matrix-grid{display:grid;grid-template-columns:auto repeat(5,1fr);gap:2px;min-width:380px}
+.mcell{min-height:50px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center;padding:4px;position:relative;cursor:default}
+.mcell.lbl{background:transparent;font-size:10px;color:#888;min-height:32px}
+.mcell.ylbl{font-size:9px;padding:2px 4px;line-height:1.2}
+.z-C{background:#F09595;color:#501313}
+.z-A{background:#FAC775;color:#412402}
+.z-M{background:#C0DD97;color:#173404}
+.z-B{background:#9FE1CB;color:#04342C}
+.z-C.has{cursor:pointer}.z-C.has:hover{opacity:.85}
+.z-A.has{cursor:pointer}.z-A.has:hover{opacity:.85}
+.z-M.has{cursor:pointer}.z-M.has:hover{opacity:.85}
+.z-B.has{cursor:pointer}.z-B.has:hover{opacity:.85}
+.dot-wrap{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;max-width:60px}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.3)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{text-align:left;padding:6px 8px;font-size:11px;font-weight:500;color:#888;border-bottom:0.5px solid #e0e0de;white-space:nowrap}
+tbody td{padding:6px 8px;border-bottom:0.5px solid #f0f0ee;vertical-align:middle}
+tbody tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:500}
+.bc{background:#FCEBEB;color:#791F1F}
+.ba{background:#FAEEDA;color:#633806}
+.bm{background:#EAF3DE;color:#27500A}
+.bb{background:#E1F5EE;color:#085041}
+.bact{background:#E6F1FB;color:#0C447C}
+.bpen{background:#FAEEDA;color:#633806}
+.bcerr{background:#EAF3DE;color:#27500A}
+.bobs{background:#F1EFE8;color:#444441}
+.progress{height:5px;background:#eee;border-radius:3px;overflow:hidden;min-width:60px}
+.progress-fill{height:100%;border-radius:3px;background:#639922}
+.pg-low{background:#1D9E75}
+.pg-med{background:#BA7517}
+.pg-high{background:#E24B4A}
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:#fff;border-radius:12px;padding:20px;max-width:520px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.modal h3{font-size:14px;font-weight:500;margin-bottom:14px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.mf label{font-size:10px;color:#888;display:block;margin-bottom:2px}
+.mf p{font-size:12px;color:#1a1a18}
+.mf.full{grid-column:1/-1}
+.modal-foot{display:flex;justify-content:flex-end;margin-top:14px}
+.btn-close{padding:6px 16px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px}
+.sortable{cursor:pointer;user-select:none}
+.sortable:hover{color:#333}
+canvas{max-height:220px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Gestión de Riesgo Operacional</h1>
+    <div class="sub" id="hdrSub">Carga tu archivo CSV para comenzar</div>
+  </div>
+  <label for="fileInput" style="font-size:12px;padding:6px 14px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer">
+    ↑ Cargar nuevo archivo
+  </label>
+  <input type="file" id="fileInput" accept=".csv">
+</div>
+
+<div class="upload-zone" id="uploadZone">
+  <label for="fileInput" style="cursor:pointer;display:block">
+    <strong>📂 Arrastra tu CSV aquí o haz clic para seleccionar</strong>
+    <p>Formato esperado: ID_Riesgo, Proceso, Subproceso, Evento_Riesgo, Probabilidad_Inherente, Impacto_Inherente, Nivel_Inherente, Clasificacion_Inherente, Control_Clave, Eficacia_Control_Porc, Nivel_Residual, Clasificacion_Residual, Responsable, Estado…</p>
+  </label>
+</div>
+
+<div class="main" id="main">
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('vista-matriz')">Matriz 5×5</button>
+    <button class="tab" onclick="setTab('vista-tabla')">Registro completo</button>
+    <button class="tab" onclick="setTab('vista-charts')">Análisis</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <select id="fProceso"><option value="">Todos los procesos</option></select>
+    <select id="fClasInherente"><option value="">Clasificación inherente</option></select>
+    <select id="fClasResidual"><option value="">Clasificación residual</option></select>
+    <select id="fEstado"><option value="">Todos los estados</option></select>
+    <select id="fResponsable"><option value="">Todos los responsables</option></select>
+    <input type="text" id="fSearch" placeholder="Buscar evento…" style="min-width:160px">
+    <button onclick="resetFilters()">✕ Limpiar</button>
+    <button onclick="exportCSV()">↓ Exportar CSV</button>
+  </div>
+
+  <div class="panel active" id="vista-matriz">
+    <div class="grid2">
+      <div class="card">
+        <h3>Riesgo Inherente</h3>
+        <div class="matrix-wrap"><div class="matrix-grid" id="matInherente"></div></div>
+      </div>
+      <div class="card">
+        <h3>Riesgo Residual</h3>
+        <div class="matrix-wrap"><div class="matrix-grid" id="matResidual"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="vista-tabla">
+    <div class="card" style="overflow-x:auto">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th class="sortable" onclick="sortBy('Proceso')">Proceso ⇅</th>
+            <th class="sortable" onclick="sortBy('Evento_Riesgo')">Evento ⇅</th>
+            <th>Factor</th>
+            <th class="sortable" onclick="sortBy('Clasificacion_Inherente')">Inherente ⇅</th>
+            <th>Eficacia ctrl</th>
+            <th class="sortable" onclick="sortBy('Clasificacion_Residual')">Residual ⇅</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="pager" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 0;font-size:12px"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="vista-charts">
+    <div class="grid2">
+      <div class="card"><h3>Distribución por clasificación inherente</h3><canvas id="chartInherente"></canvas></div>
+      <div class="card"><h3>Distribución por clasificación residual</h3><canvas id="chartResidual"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Top 10 procesos por exposición</h3><canvas id="chartProcesos"></canvas></div>
+      <div class="card"><h3>Eficacia de controles por proceso</h3><canvas id="chartEficacia"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Estado del plan de acción</h3><canvas id="chartEstado"></canvas></div>
+      <div class="card"><h3>Reducción inherente → residual</h3><canvas id="chartReduccion"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div id="modalWrap"></div>
+
+<script>
+let ALL=[], filtered=[], sortCol='', sortAsc=true, page=1;
+const PER_PAGE=20;
+const charts={};
+
+const zClass=v=>{
+  if(typeof v==='string'){
+    const u=v.toUpperCase();
+    if(u.includes('CRÍT')||u.includes('CRIT'))return'C';
+    if(u.includes('ALTO')||u.includes('HIGH'))return'A';
+    if(u.includes('MOD')||u.includes('MEDIO'))return'M';
+    if(u.includes('BAJO')||u.includes('LOW'))return'B';
+  }
+  if(typeof v==='number'){if(v>=16)return'C';if(v>=9)return'A';if(v>=4)return'M';return'B';}
+  return'M';
+};
+const zLabel={'C':'Crítico','A':'Alto','M':'Moderado','B':'Bajo'};
+const zBadge={'C':'bc','A':'ba','M':'bm','B':'bb'};
+const stateBadge=s=>{if(!s)return'bobs';const u=s.toLowerCase();if(u.includes('activ'))return'bact';if(u.includes('pend'))return'bpen';if(u.includes('cerr')||u.includes('resuel'))return'bcerr';return'bobs';};
+const pI=['Insignificante','Menor','Moderado','Mayor','Catastrófico'];
+const pP=['Raro','Improbable','Posible','Probable','Casi seguro'];
+
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  Papa.parse(f,{header:true,skipEmptyLines:true,dynamicTyping:true,complete:r=>{
+    ALL=r.data; init();
+  }});
+});
+
+['dragover','dragenter'].forEach(ev=>document.getElementById('uploadZone').addEventListener(ev,e=>{e.preventDefault();e.currentTarget.style.borderColor='#555';}));
+['dragleave','drop'].forEach(ev=>document.getElementById('uploadZone').addEventListener(ev,e=>{e.preventDefault();e.currentTarget.style.borderColor='#bbb';}));
+document.getElementById('uploadZone').addEventListener('drop',e=>{
+  const f=e.dataTransfer.files[0]; if(!f)return;
+  Papa.parse(f,{header:true,skipEmptyLines:true,dynamicTyping:true,complete:r=>{ALL=r.data;init();}});
+});
+
+function init(){
+  document.getElementById('uploadZone').style.display='none';
+  document.getElementById('main').style.display='block';
+  document.getElementById('hdrSub').textContent=`${ALL.length} registros cargados`;
+  populateFilters();
+  applyFilters();
+  buildCharts();
+}
+
+function populateFilters(){
+  const fill=(id,key)=>{
+    const sel=document.getElementById(id);
+    const vals=[...new Set(ALL.map(r=>r[key]).filter(Boolean))].sort();
+    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});
+  };
+  fill('fProceso','Proceso');fill('fClasInherente','Clasificacion_Inherente');
+  fill('fClasResidual','Clasificacion_Residual');fill('fEstado','Estado');fill('fResponsable','Responsable');
+  ['fProceso','fClasInherente','fClasResidual','fEstado','fResponsable','fSearch'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>{page=1;applyFilters();});
+    if(id==='fSearch')document.getElementById(id).addEventListener('input',()=>{page=1;applyFilters();});
+  });
+}
+
+function applyFilters(){
+  const fp=document.getElementById('fProceso').value;
+  const fi=document.getElementById('fClasInherente').value;
+  const fr=document.getElementById('fClasResidual').value;
+  const fe=document.getElementById('fEstado').value;
+  const fre=document.getElementById('fResponsable').value;
+  const fs=document.getElementById('fSearch').value.toLowerCase();
+  filtered=ALL.filter(r=>{
+    return (!fp||r.Proceso===fp)&&(!fi||r.Clasificacion_Inherente===fi)&&(!fr||r.Clasificacion_Residual===fr)&&
+           (!fe||r.Estado===fe)&&(!fre||r.Responsable===fre)&&
+           (!fs||(r.Evento_Riesgo||'').toLowerCase().includes(fs)||(r.Descripcion_Riesgo||'').toLowerCase().includes(fs));
+  });
+  if(sortCol){filtered.sort((a,b)=>{const x=a[sortCol]||'',y=b[sortCol]||'';return sortAsc?(x>y?1:-1):(x<y?1:-1);});}
+  renderKPIs(); renderMatrices(); renderTable();
+}
+
+function resetFilters(){
+  ['fProceso','fClasInherente','fClasResidual','fEstado','fResponsable'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fSearch').value='';
+  page=1; applyFilters();
+}
+
+function sortBy(col){sortCol=col;sortAsc=sortCol===col?!sortAsc:true;applyFilters();}
+
+function renderKPIs(){
+  const total=filtered.length;
+  const crit=filtered.filter(r=>zClass(r.Clasificacion_Residual)==='C').length;
+  const alto=filtered.filter(r=>zClass(r.Clasificacion_Residual)==='A').length;
+  const avgEfic=total?Math.round(filtered.reduce((s,r)=>s+(+r.Eficacia_Control_Porc||0),0)/total):0;
+  const avgRed=total?+(filtered.reduce((s,r)=>s+(((r.Nivel_Inherente||0)-(r.Nivel_Residual||0))/(r.Nivel_Inherente||1)),0)/total*100).toFixed(1):0;
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi"><div class="val">${total}</div><div class="lbl">Total riesgos</div></div>
+    <div class="kpi crit"><div class="val">${crit}</div><div class="lbl">Residual crítico</div></div>
+    <div class="kpi high"><div class="val">${alto}</div><div class="lbl">Residual alto</div></div>
+    <div class="kpi med"><div class="val">${avgEfic}%</div><div class="lbl">Eficacia promedio ctrl</div></div>
+    <div class="kpi low"><div class="val">${avgRed}%</div><div class="lbl">Reducción promedio</div></div>`;
+}
+
+function renderMatrices(){
+  buildMatrix('matInherente',filtered,'Probabilidad_Inherente','Impacto_Inherente','Clasificacion_Inherente','Nivel_Inherente');
+  buildMatrix('matResidual',filtered,'Probabilidad_Inherente','Impacto_Inherente','Clasificacion_Residual','Nivel_Residual',true);
+}
+
+function buildMatrix(id,data,pKey,iKey,clsKey,lvlKey,residual=false){
+  const g=document.getElementById(id); g.innerHTML='';
+  const cell=(h,cls='',extra={})=>{
+    const d=document.createElement('div');
+    d.className='mcell '+cls;
+    Object.assign(d.style,extra);
+    d.innerHTML=h; return d;
+  };
+  g.appendChild(cell('','lbl'));
+  ['Ins (1)','Men (2)','Mod (3)','May (4)','Cat (5)'].forEach(l=>g.appendChild(cell(l,'lbl',{fontSize:'9px'})));
+  for(let p=5;p>=1;p--){
+    g.appendChild(cell(pP[p-1].slice(0,4)+' ('+p+')','lbl ylbl'));
+    for(let i=1;i<=5;i++){
+      let evts;
+      if(residual){
+        evts=data.filter(r=>{
+          const ni=+(r[pKey]||0), ii=+(r[iKey]||0);
+          const score=+(r[lvlKey]||0);
+          const rp=Math.round(score/Math.max(ii,1)), ri=ii;
+          return Math.abs(rp-p)<=1&&ri===i;
+        });
+        evts=data.filter(r=>{
+          const nr=+(r[lvlKey]||0);
+          const z=zClass(r[clsKey]);
+          const pi_score=p*i;
+          return Math.abs(pi_score-nr)<=3&&zClass(pi_score)===z;
+        });
+        evts=data.filter(r=>+(r.Probabilidad_Inherente||0)===p&&+(r[iKey]||0)===i);
+      } else {
+        evts=data.filter(r=>+(r[pKey]||0)===p&&+(r[iKey]||0)===i);
+      }
+      const z=zClass(p*i);
+      const d=document.createElement('div');
+      d.className='mcell z-'+z+(evts.length?' has':'');
+      d.title=`P:${p} × I:${i} = ${p*i} | ${zLabel[z]}${evts.length?' | '+evts.length+' riesgo(s)':''}`;
+      if(evts.length){
+        const w=document.createElement('div');w.className='dot-wrap';
+        evts.slice(0,9).forEach(()=>{const dt=document.createElement('span');dt.className='dot';w.appendChild(dt);});
+        if(evts.length>9){const m=document.createElement('span');m.style='font-size:9px;font-weight:500';m.textContent='+';w.appendChild(m);}
+        d.appendChild(w);
+        d.addEventListener('click',()=>showCellModal(p,i,evts));
+      } else {
+        d.textContent=p*i;
+      }
+      g.appendChild(d);
+    }
+  }
+}
+
+function showCellModal(p,i,evts){
+  document.getElementById('modalWrap').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>P:${p} × I:${i} = ${p*i} — ${evts.length} riesgo(s)</h3>
+      <div style="max-height:55vh;overflow-y:auto">
+      ${evts.map(e=>`<div style="padding:8px 0;border-bottom:0.5px solid #f0f0ee">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="font-size:12px;font-weight:500">${e.Evento_Riesgo||'-'}</span>
+          <span class="badge ${zBadge[zClass(e.Clasificacion_Residual)]}">${e.Clasificacion_Residual||'-'}</span>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${e.Proceso||''} · ${e.Subproceso||''}</div>
+        <div style="font-size:11px;color:#555;margin-top:3px">${e.Control_Clave||''}</div>
+      </div>`).join('')}
+      </div>
+      <div class="modal-foot"><button class="btn-close" onclick="closeModal()">Cerrar</button></div>
+    </div>
+  </div>`;
+}
+
+function renderTable(){
+  const start=(page-1)*PER_PAGE, end=start+PER_PAGE;
+  const rows=filtered.slice(start,end);
+  document.getElementById('tbody').innerHTML=rows.map(r=>{
+    const z=zClass(r.Clasificacion_Residual);
+    const ef=Math.min(+(r.Eficacia_Control_Porc||0),100);
+    const pgCls=ef>=70?'pg-low':ef>=40?'pg-med':'pg-high';
+    return `<tr onclick="showDetail(${ALL.indexOf(r)})" style="cursor:pointer">
+      <td style="font-size:11px;color:#aaa">${r.ID_Riesgo||'-'}</td>
+      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Proceso||'-'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.Evento_Riesgo||''}">${r.Evento_Riesgo||'-'}</td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#888">${r.Factor_Riesgo||'-'}</td>
+      <td><span class="badge ${zBadge[zClass(r.Clasificacion_Inherente)]}">${r.Clasificacion_Inherente||'-'}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="progress"><div class="progress-fill ${pgCls}" style="width:${ef}%"></div></div>
+          <span style="font-size:11px;min-width:28px">${ef}%</span>
+        </div>
+      </td>
+      <td><span class="badge ${zBadge[z]}">${r.Clasificacion_Residual||'-'}</span></td>
+      <td style="font-size:11px">${r.Responsable||'-'}</td>
+      <td><span class="badge ${stateBadge(r.Estado)}">${r.Estado||'-'}</span></td>
+    </tr>`;
+  }).join('');
+  const tot=filtered.length, pages=Math.ceil(tot/PER_PAGE);
+  document.getElementById('pager').innerHTML=`
+    <span style="color:#888">${tot} registros · pág ${page}/${pages}</span>
+    <button onclick="goPage(${page-1})" ${page<=1?'disabled':''} style="padding:3px 10px;border-radius:6px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px">‹ Ant</button>
+    <button onclick="goPage(${page+1})" ${page>=pages?'disabled':''} style="padding:3px 10px;border-radius:6px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px">Sig ›</button>`;
+}
+
+function goPage(p){const tot=filtered.length,pages=Math.ceil(tot/PER_PAGE);if(p<1||p>pages)return;page=p;renderTable();}
+
+function showDetail(idx){
+  const r=ALL[idx]; if(!r)return;
+  const f=(l,v)=>`<div class="mf"><label>${l}</label><p>${v||'-'}</p></div>`;
+  document.getElementById('modalWrap').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>${r.Evento_Riesgo||'Detalle del riesgo'}</h3>
+      <div class="modal-grid">
+        ${f('ID Riesgo',r.ID_Riesgo)}${f('Fecha registro',r.Fecha_Registro)}
+        ${f('Proceso',r.Proceso)}${f('Subproceso',r.Subproceso)}
+        <div class="mf full"><label>Descripción</label><p>${r.Descripcion_Riesgo||'-'}</p></div>
+        ${f('Factor de riesgo',r.Factor_Riesgo)}${f('Responsable',r.Responsable)}
+        ${f('Probabilidad inherente',r.Probabilidad_Inherente)}${f('Impacto inherente',r.Impacto_Inherente)}
+        ${f('Nivel inherente',r.Nivel_Inherente)}
+        <div class="mf"><label>Clasificación inherente</label><p><span class="badge ${zBadge[zClass(r.Clasificacion_Inherente)]}">${r.Clasificacion_Inherente||'-'}</span></p></div>
+        <div class="mf full"><label>Control clave</label><p>${r.Control_Clave||'-'}</p></div>
+        ${f('Eficacia del control',r.Eficacia_Control_Porc+'%')}${f('Nivel residual',r.Nivel_Residual)}
+        <div class="mf"><label>Clasificación residual</label><p><span class="badge ${zBadge[zClass(r.Clasificacion_Residual)]}">${r.Clasificacion_Residual||'-'}</span></p></div>
+        <div class="mf"><label>Estado</label><p><span class="badge ${stateBadge(r.Estado)}">${r.Estado||'-'}</span></p></div>
+      </div>
+      <div class="modal-foot"><button class="btn-close" onclick="closeModal()">Cerrar</button></div>
+    </div>
+  </div>`;
+}
+
+function closeModal(){document.getElementById('modalWrap').innerHTML='';}
+
+function buildCharts(){
+  setTimeout(()=>{
+    const classCounts=cls=>{
+      const c={'Crítico':0,'Alto':0,'Moderado':0,'Bajo':0};
+      ALL.forEach(r=>{const v=r[cls]||'';Object.keys(c).forEach(k=>{if(v.toUpperCase().includes(k.toUpperCase().slice(0,4)))c[k]++;});});
+      return c;
+    };
+    const mkDoughnut=(id,data)=>{
+      if(charts[id])charts[id].destroy();
+      charts[id]=new Chart(document.getElementById(id),{type:'doughnut',data:{
+        labels:Object.keys(data),
+        datasets:[{data:Object.values(data),backgroundColor:['#F09595','#FAC775','#C0DD97','#9FE1CB'],borderWidth:0}]
+      },options:{plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}},cutout:'60%'}});
+    };
+    mkDoughnut('chartInherente',classCounts('Clasificacion_Inherente'));
+    mkDoughnut('chartResidual',classCounts('Clasificacion_Residual'));
+
+    const procMap={};
+    ALL.forEach(r=>{const p=r.Proceso||'?';if(!procMap[p])procMap[p]=0;procMap[p]+=(+r.Nivel_Inherente||0);});
+    const sortedProc=Object.entries(procMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    if(charts.chartProcesos)charts.chartProcesos.destroy();
+    charts.chartProcesos=new Chart(document.getElementById('chartProcesos'),{type:'bar',data:{
+      labels:sortedProc.map(x=>x[0].length>20?x[0].slice(0,18)+'…':x[0]),
+      datasets:[{data:sortedProc.map(x=>x[1]),backgroundColor:'#F09595',borderRadius:4}]
+    },options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{font:{size:10}}}}}});
+
+    const efMap={};const efCnt={};
+    ALL.forEach(r=>{const p=r.Proceso||'?';if(!efMap[p]){efMap[p]=0;efCnt[p]=0;}efMap[p]+=(+r.Eficacia_Control_Porc||0);efCnt[p]++;});
+    const sortedEf=Object.entries(efMap).map(([k,v])=>[k,Math.round(v/efCnt[k])]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(charts.chartEficacia)charts.chartEficacia.destroy();
+    charts.chartEficacia=new Chart(document.getElementById('chartEficacia'),{type:'bar',data:{
+      labels:sortedEf.map(x=>x[0].length>18?x[0].slice(0,16)+'…':x[0]),
+      datasets:[{data:sortedEf.map(x=>x[1]),backgroundColor:'#9FE1CB',borderRadius:4}]
+    },options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,grid:{display:false}},y:{ticks:{font:{size:10}}}}}});
+
+    const stMap={};
+    ALL.forEach(r=>{const s=r.Estado||'N/A';stMap[s]=(stMap[s]||0)+1;});
+    if(charts.chartEstado)charts.chartEstado.destroy();
+    charts.chartEstado=new Chart(document.getElementById('chartEstado'),{type:'pie',data:{
+      labels:Object.keys(stMap),
+      datasets:[{data:Object.values(stMap),backgroundColor:['#B5D4F4','#FAC775','#C0DD97','#D3D1C7','#F09595'],borderWidth:0}]
+    },options:{plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
+
+    const zones=['Bajo','Moderado','Alto','Crítico'];
+    const inh=zones.map(z=>ALL.filter(r=>(r.Clasificacion_Inherente||'').includes(z.slice(0,4))).length);
+    const res=zones.map(z=>ALL.filter(r=>(r.Clasificacion_Residual||'').includes(z.slice(0,4))).length);
+    if(charts.chartReduccion)charts.chartReduccion.destroy();
+    charts.chartReduccion=new Chart(document.getElementById('chartReduccion'),{type:'bar',data:{
+      labels:zones,
+      datasets:[
+        {label:'Inherente',data:inh,backgroundColor:'#F09595',borderRadius:3},
+        {label:'Residual',data:res,backgroundColor:'#9FE1CB',borderRadius:3}
+      ]
+    },options:{plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false}},y:{grid:{display:false}}}}});
+  },200);
+}
+
+function setTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['vista-matriz','vista-tabla','vista-charts'];
+    t.classList.toggle('active',ids[i]===id);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id));
+  if(id==='vista-charts')buildCharts();
+}
+
+function exportCSV(){
+  const cols=['ID_Riesgo','Proceso','Subproceso','Evento_Riesgo','Factor_Riesgo','Probabilidad_Inherente','Impacto_Inherente','Nivel_Inherente','Clasificacion_Inherente','Control_Clave','Eficacia_Control_Porc','Nivel_Residual','Clasificacion_Residual','Responsable','Estado','Fecha_Registro'];
+  const rows=[cols.join(','),...filtered.map(r=>cols.map(c=>`"${(r[c]||'').toString().replace(/"/g,'""')}"`).join(','))];
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(rows.join('\n'));
+  a.download='riesgo_operacional_filtrado.csv';a.click();
+}
+</script>
+</body>
+</html>
