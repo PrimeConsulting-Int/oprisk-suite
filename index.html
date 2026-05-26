@@ -2,483 +2,1718 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Matriz Riesgo Operacional</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Riesgo Operacional v3 | Comité de Riesgos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+:root{--navy:#0a2540;--navy-2:#102a43;--navy-3:#1c3d5a;--blue:#1e88e5;--blue-light:#42a5f5;--blue-soft:#e3f2fd;--bg:#f5f7fa;--surface:#ffffff;--border:#e3e8ee;--text:#0a2540;--text-2:#52606d;--muted:#90a4ae;--green:#2e7d32;--green-soft:#e8f5e9;--yellow:#f9a825;--yellow-soft:#fff8e1;--orange:#ef6c00;--orange-soft:#fff3e0;--red:#c62828;--red-soft:#ffebee;--shadow:0 1px 3px rgba(10,37,64,.08),0 4px 12px rgba(10,37,64,.04);--shadow-hover:0 4px 12px rgba(10,37,64,.12),0 8px 24px rgba(10,37,64,.06);--radius:10px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f5f5f3;color:#1a1a18;font-size:14px}
-.header{background:#fff;border-bottom:0.5px solid #ddd;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.header h1{font-size:16px;font-weight:500}
-.header .sub{font-size:12px;color:#888;margin-top:2px}
-.upload-zone{border:1.5px dashed #bbb;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:border-color .2s;margin:20px;background:#fff}
-.upload-zone:hover{border-color:#555}
-.upload-zone p{color:#666;font-size:13px;margin-top:8px}
-.upload-zone strong{font-size:15px;color:#333}
-#fileInput{display:none}
-.main{display:none;padding:16px 20px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:#fff;border-radius:10px;padding:12px 14px;border:0.5px solid #e0e0de}
-.kpi .val{font-size:24px;font-weight:500;line-height:1.1}
-.kpi .lbl{font-size:11px;color:#888;margin-top:3px}
-.kpi.crit .val{color:#A32D2D}
-.kpi.high .val{color:#854F0B}
-.kpi.med .val{color:#3B6D11}
-.kpi.low .val{color:#0F6E56}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.filters select,.filters input{font-size:12px;padding:5px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a18}
-.filters button{font-size:12px;padding:5px 12px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer}
-.filters button:hover{background:#f0f0ee}
-.tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:0.5px solid #ddd}
-.tab{font-size:12px;padding:7px 16px;cursor:pointer;border-bottom:2px solid transparent;color:#888;background:none;border-left:none;border-right:none;border-top:none}
-.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;font-weight:500}
-.panel{display:none}.panel.active{display:block}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.card{background:#fff;border-radius:10px;border:0.5px solid #e0e0de;padding:14px}
-.card h3{font-size:12px;font-weight:500;color:#888;margin-bottom:12px;text-transform:uppercase;letter-spacing:.04em}
-.matrix-wrap{overflow-x:auto}
-.matrix-grid{display:grid;grid-template-columns:auto repeat(5,1fr);gap:2px;min-width:380px}
-.mcell{min-height:50px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center;padding:4px;position:relative;cursor:default}
-.mcell.lbl{background:transparent;font-size:10px;color:#888;min-height:32px}
-.mcell.ylbl{font-size:9px;padding:2px 4px;line-height:1.2}
-.z-C{background:#F09595;color:#501313}
-.z-A{background:#FAC775;color:#412402}
-.z-M{background:#C0DD97;color:#173404}
-.z-B{background:#9FE1CB;color:#04342C}
-.z-C.has{cursor:pointer}.z-C.has:hover{opacity:.85}
-.z-A.has{cursor:pointer}.z-A.has:hover{opacity:.85}
-.z-M.has{cursor:pointer}.z-M.has:hover{opacity:.85}
-.z-B.has{cursor:pointer}.z-B.has:hover{opacity:.85}
-.dot-wrap{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;max-width:60px}
-.dot{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.3)}
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{text-align:left;padding:6px 8px;font-size:11px;font-weight:500;color:#888;border-bottom:0.5px solid #e0e0de;white-space:nowrap}
-tbody td{padding:6px 8px;border-bottom:0.5px solid #f0f0ee;vertical-align:middle}
-tbody tr:hover td{background:#fafafa}
-.badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:500}
-.bc{background:#FCEBEB;color:#791F1F}
-.ba{background:#FAEEDA;color:#633806}
-.bm{background:#EAF3DE;color:#27500A}
-.bb{background:#E1F5EE;color:#085041}
-.bact{background:#E6F1FB;color:#0C447C}
-.bpen{background:#FAEEDA;color:#633806}
-.bcerr{background:#EAF3DE;color:#27500A}
-.bobs{background:#F1EFE8;color:#444441}
-.progress{height:5px;background:#eee;border-radius:3px;overflow:hidden;min-width:60px}
-.progress-fill{height:100%;border-radius:3px;background:#639922}
-.pg-low{background:#1D9E75}
-.pg-med{background:#BA7517}
-.pg-high{background:#E24B4A}
-.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal{background:#fff;border-radius:12px;padding:20px;max-width:520px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.12)}
-.modal h3{font-size:14px;font-weight:500;margin-bottom:14px}
-.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
-.mf label{font-size:10px;color:#888;display:block;margin-bottom:2px}
-.mf p{font-size:12px;color:#1a1a18}
-.mf.full{grid-column:1/-1}
-.modal-foot{display:flex;justify-content:flex-end;margin-top:14px}
-.btn-close{padding:6px 16px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px}
-.sortable{cursor:pointer;user-select:none}
-.sortable:hover{color:#333}
-canvas{max-height:220px}
+html,body{font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.45}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:13px}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 100%);color:#fff;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-brand{padding:0 22px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-brand h1{font-size:15px;font-weight:600;letter-spacing:.3px}
+.sidebar-brand p{font-size:11px;color:#90caf9;margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+.nav{padding:14px 0}
+.nav-section{padding:10px 22px 6px;font-size:10px;color:#78909c;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 22px;color:#cfd8dc;font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.04);color:#fff}
+.nav-item.active{background:rgba(30,136,229,.15);border-left-color:var(--blue-light);color:#fff;font-weight:500}
+.nav-item .icon{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.nav-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;display:none}
+.nav-item .badge.show{display:inline-block}
+.main{overflow-x:hidden}
+.topbar{background:#fff;padding:14px 28px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.topbar-title{font-size:18px;font-weight:600;color:var(--navy)}
+.topbar-sub{color:var(--text-2);font-size:12px;margin-left:6px}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:12px;font-weight:500;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#1565c0;color:#fff}
+.btn-success{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-success:hover{background:#1b5e20;color:#fff}
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-danger:hover{background:#8e0000;color:#fff}
+.btn-ghost{background:transparent}
+.btn-sm{padding:5px 10px;font-size:11px}
+.filters{background:#fff;padding:12px 28px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-group label{font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.filter-group select,.filter-group input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);min-width:130px}
+.content{padding:24px 28px}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--blue);position:relative;overflow:hidden;transition:transform .15s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.kpi.danger{border-left-color:var(--red)}
+.kpi.warning{border-left-color:var(--orange)}
+.kpi.success{border-left-color:var(--green)}
+.kpi.info{border-left-color:var(--blue-light)}
+.kpi-label{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kpi-value{font-size:24px;font-weight:700;color:var(--navy);margin:6px 0 4px;letter-spacing:-.5px}
+.kpi-trend{font-size:11px;color:var(--text-2)}
+.kpi-icon{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--blue);font-weight:700}
+.kpi.danger .kpi-icon{background:var(--red-soft);color:var(--red)}
+.kpi.warning .kpi-icon{background:var(--orange-soft);color:var(--orange)}
+.kpi.success .kpi-icon{background:var(--green-soft);color:var(--green)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:1100px){.grid-2,.grid-2-1{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);gap:12px}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.3px}
+.card-sub{font-size:11px;color:var(--text-2);margin-top:2px;font-weight:400}
+.card-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.chart-container{position:relative;height:280px}
+.chart-container.tall{height:340px}
+.chart-container.short{height:200px}
+.tab-pills{display:flex;gap:4px;background:#eceff1;padding:3px;border-radius:6px}
+.tab-pill{padding:6px 12px;font-size:11px;font-weight:500;color:var(--text-2);cursor:pointer;border-radius:4px;border:none;background:transparent}
+.tab-pill.active{background:var(--blue);color:#fff}
+.heatmap-wrap{display:flex;flex-direction:column;align-items:center;padding:14px 0;overflow-x:auto}
+.heatmap-table{border-collapse:collapse}
+.heatmap-table th,.heatmap-table td{padding:0;text-align:center}
+.heatmap-header{background:var(--navy);color:#fff;font-size:11px;font-weight:600;padding:8px 4px !important;letter-spacing:.3px}
+.heatmap-header-sub{background:#1c3d5a;color:#90caf9;font-size:9px;padding:4px !important;font-weight:500}
+.heatmap-yhdr{background:var(--navy);color:#fff;font-size:11px;font-weight:600;padding:8px 8px !important;text-align:right;line-height:1.3}
+.heatmap-yhdr-pct{font-size:10px;color:#90caf9;display:block;font-weight:700}
+.heatmap-cell{width:118px;height:78px;color:#fff;font-weight:600;cursor:pointer;transition:transform .15s;position:relative;text-align:center}
+.heatmap-cell:hover{transform:scale(1.04);z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.heatmap-cell-inner{padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+.heatmap-cell .count{font-size:18px;line-height:1}
+.heatmap-cell .lvl{font-size:10px;opacity:.95;margin-top:3px;font-weight:600}
+.heatmap-cell-proc{width:140px;min-height:90px}
+.heatmap-cell-proc .proc-name{font-size:9px;line-height:1.25;font-weight:500;opacity:.95;display:block;margin-top:1px}
+.hm-bajo{background:var(--green)}
+.hm-medio{background:var(--yellow);color:#5d4037}
+.hm-alto{background:var(--orange)}
+.hm-critico{background:var(--red)}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+table.dt{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+table.dt thead th{background:var(--navy);color:#fff;text-align:left;padding:10px 12px;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;white-space:nowrap}
+table.dt thead th.sortable{cursor:pointer;user-select:none}
+table.dt tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.dt tbody tr:hover{background:#fafbfc}
+table.dt tbody tr.row-critico{background:#fff5f5}
+.cell-id{font-weight:600;color:var(--blue);font-family:'SF Mono',Monaco,monospace}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.tag-bajo{background:var(--green-soft);color:var(--green)}
+.tag-medio{background:var(--yellow-soft);color:#a5710b}
+.tag-alto{background:var(--orange-soft);color:var(--orange)}
+.tag-critico{background:var(--red-soft);color:var(--red)}
+.tag-fuera{background:var(--red-soft);color:var(--red);border:1px dashed var(--red)}
+.modal{display:none;position:fixed;inset:0;background:rgba(10,37,64,.55);z-index:100;padding:30px;overflow-y:auto;align-items:flex-start;justify-content:center}
+.modal.open{display:flex}
+.modal-card{background:#fff;border-radius:12px;width:100%;max-width:820px;box-shadow:0 20px 50px rgba(0,0,0,.25);max-height:92vh;display:flex;flex-direction:column}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-head h2{font-size:16px;font-weight:600;color:var(--navy)}
+.modal-body{padding:18px 22px;overflow-y:auto}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.field input,.field select,.field textarea{padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text)}
+.field textarea{min-height:55px;resize:vertical;font-family:inherit}
+.section-title{font-size:11px;color:var(--blue);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--blue-soft)}
+.section-title:first-child{margin-top:0}
+.help-box{background:var(--blue-soft);padding:8px 10px;border-radius:6px;font-size:10px;color:var(--navy);margin-bottom:8px;line-height:1.5}
+.gauge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.gauge-card{background:#fff;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.gauge-name{font-size:11px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;min-height:30px}
+.gauge-bar{height:8px;background:linear-gradient(90deg,var(--green) 0%,var(--green) 33%,var(--yellow) 33%,var(--yellow) 66%,var(--red) 66%,var(--red) 100%);border-radius:4px;position:relative;margin:18px 0 10px}
+.gauge-pointer{position:absolute;top:-4px;width:3px;height:16px;background:var(--navy);border-radius:1.5px;transform:translateX(-50%)}
+.gauge-value{font-size:22px;font-weight:700;color:var(--navy);text-align:center;margin-bottom:4px}
+.gauge-thresh{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.gauge-status{text-align:center;margin-top:6px;font-size:11px;font-weight:600}
+.alert-list{display:flex;flex-direction:column;gap:8px;max-height:600px;overflow-y:auto}
+.alert{display:flex;gap:12px;padding:12px 14px;background:#fff;border-radius:8px;border-left:3px solid var(--blue);box-shadow:var(--shadow);align-items:flex-start}
+.alert.danger{border-left-color:var(--red);background:#fffafa}
+.alert.warning{border-left-color:var(--orange);background:#fffaf3}
+.alert-icon{width:32px;height:32px;border-radius:50%;background:var(--red-soft);color:var(--red);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.alert.warning .alert-icon{background:var(--orange-soft);color:var(--orange)}
+.alert-content{flex:1}
+.alert-title{font-weight:600;font-size:13px;color:var(--navy);margin-bottom:2px}
+.alert-msg{font-size:12px;color:var(--text-2)}
+.alert-time{font-size:10px;color:var(--muted);margin-top:3px}
+.drill-panel{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);margin-top:16px;display:none}
+.drill-panel.open{display:block}
+.drill-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:12px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:200;display:none}
+.toast.show{display:block}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#eceff1}
+::-webkit-scrollbar-thumb{background:#b0bec5;border-radius:4px}
+@media print{.sidebar,.topbar-actions,.filters,.card-actions,.modal{display:none !important}.app{grid-template-columns:1fr}.page{display:block !important}.card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}}
 </style>
 </head>
 <body>
+<div class="app">
+<aside class="sidebar">
+<div class="sidebar-brand"><h1>Risk Operations</h1><p>Matriz GROp · v3.0</p></div>
+<nav class="nav">
+<div class="nav-section">Dashboard</div>
+<div class="nav-item active" data-page="executive"><span class="icon">▣</span>Resumen Ejecutivo</div>
+<div class="nav-item" data-page="heatmap"><span class="icon">▦</span>Mapa de Calor (Riesgos)</div>
+<div class="nav-item" data-page="procheatmap"><span class="icon">▥</span>Mapa de Calor (Procesos)</div>
+<div class="nav-item" data-page="critical"><span class="icon">●</span>Riesgos Críticos<span class="badge" id="badgeCriticos"></span></div>
+<div class="nav-section">Análisis</div>
+<div class="nav-item" data-page="quarterly"><span class="icon">◷</span>Evolución Trimestral</div>
+<div class="nav-item" data-page="losses"><span class="icon">↓</span>Eventos de Pérdida</div>
+<div class="nav-item" data-page="kris"><span class="icon">◐</span>KRIs Monitor<span class="badge" id="badgeKris"></span></div>
+<div class="nav-item" data-page="controls"><span class="icon">✓</span>Controles</div>
+<div class="nav-item" data-page="factors"><span class="icon">◇</span>Factores y Causas</div>
+<div class="nav-section">Gestión</div>
+<div class="nav-item" data-page="actions"><span class="icon">▶</span>Planes de Acción</div>
+<div class="nav-item" data-page="alerts"><span class="icon">⚠</span>Alertas<span class="badge" id="badgeAlerts"></span></div>
+<div class="nav-section">Reporte</div>
+<div class="nav-item" data-page="report"><span class="icon">📄</span>Informe Ejecutivo</div>
+<div class="nav-section">Datos</div>
+<div class="nav-item" data-page="matrix"><span class="icon">▤</span>Matriz Completa</div>
+<div class="nav-item" data-page="settings"><span class="icon">⚙</span>Configuración</div>
+</nav>
+</aside>
+<main class="main">
+<div class="topbar">
+<div><span class="topbar-title" id="pageTitle">Resumen Ejecutivo</span><span class="topbar-sub" id="pageSub">Comité de Riesgos · Visión consolidada</span></div>
+<div class="topbar-actions">
+<button class="btn btn-ghost" id="btnImport" title="Importar archivo Excel/CSV · auto-detecta formato RCSA">⬆ Importar RCSA/Excel</button>
+<input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+<button class="btn btn-ghost" id="btnExport">⬇ Excel</button>
+<button class="btn btn-success" id="btnReport">📄 Informe Word</button>
+<button class="btn btn-primary" id="btnNewRisk">+ Riesgo</button>
+</div>
+</div>
+<div class="filters">
+<div class="filter-group"><label>Proceso</label><select id="fProceso"><option value="">Todos</option></select></div>
+<div class="filter-group"><label>Unidad</label><select id="fUnidad"><option value="">Todas</option></select></div>
+<div class="filter-group"><label>Factor de Riesgo</label><select id="fFactor"><option value="">Todos</option></select></div>
+<div class="filter-group"><label>Causa</label><select id="fCausa"><option value="">Todas</option></select></div>
+<div class="filter-group"><label>Categoría Basel</label><select id="fBasel"><option value="">Todas</option></select></div>
+<div class="filter-group"><label>Tipo de Impacto</label><select id="fImpact"><option value="">Todos</option><option>Financiero</option><option>Operativo</option><option>Regulatorio</option><option>Reputacional</option></select></div>
+<div class="filter-group"><label>Nivel Residual</label><select id="fNivel"><option value="">Todos</option><option>Bajo</option><option>Medio</option><option>Alto</option><option>Crítico</option></select></div>
+<div class="filter-group"><label>Estado</label><select id="fEstado"><option value="">Todos</option><option>Activo</option><option>Mitigado</option><option>Cerrado</option><option>En Tratamiento</option></select></div>
+<div class="filter-group"><label>Buscar</label><input type="text" id="fSearch" placeholder="Riesgo, ID..."></div>
+<button class="btn btn-sm" id="btnClearFilters">Limpiar</button>
+</div>
+<div class="content">
 
-<div class="header">
-  <div>
-    <h1>Gestión de Riesgo Operacional</h1>
-    <div class="sub" id="hdrSub">Carga tu archivo CSV para comenzar</div>
-  </div>
-  <label for="fileInput" style="font-size:12px;padding:6px 14px;border-radius:8px;border:0.5px solid #ccc;background:#fff;cursor:pointer">
-    ↑ Cargar nuevo archivo
-  </label>
-  <input type="file" id="fileInput" accept=".csv">
+<div class="page active" id="page-executive">
+<div class="kpi-grid">
+<div class="kpi info"><div class="kpi-icon">Σ</div><div class="kpi-label">Total Riesgos</div><div class="kpi-value" id="kpiTotal">0</div></div>
+<div class="kpi danger"><div class="kpi-icon">!</div><div class="kpi-label">Críticos</div><div class="kpi-value" id="kpiCriticos">0</div></div>
+<div class="kpi warning"><div class="kpi-icon">▲</div><div class="kpi-label">Fuera de Apetito</div><div class="kpi-value" id="kpiFuera">0</div></div>
+<div class="kpi danger"><div class="kpi-icon">$</div><div class="kpi-label">Pérdida Neta YTD</div><div class="kpi-value" id="kpiPerdida">$0</div></div>
+<div class="kpi warning"><div class="kpi-icon">Σ$</div><div class="kpi-label">Exposición Financiera</div><div class="kpi-value" id="kpiExpFin">$0</div></div>
+<div class="kpi success"><div class="kpi-icon">✓</div><div class="kpi-label">Controles Efectivos</div><div class="kpi-value" id="kpiControles">0%</div></div>
+</div>
+<div class="grid-2-1">
+<div class="card"><div class="card-header"><div><div class="card-title">Exposición por Categoría de Impacto</div><div class="card-sub">Distribución de # de riesgos por nivel × tipo de impacto</div></div></div><div class="chart-container"><canvas id="chartImpactCats"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Estado de la Matriz</div></div><div class="chart-container short"><canvas id="chartEstado"></canvas></div></div>
+</div>
+<div class="grid-2">
+<div class="card"><div class="card-header"><div><div class="card-title">Top 10 Procesos por Exposición $</div></div></div><div class="chart-container tall"><canvas id="chartProcesos"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Causas más Frecuentes</div></div><div class="chart-container tall"><canvas id="chartCausas"></canvas></div></div>
+</div>
+<div class="grid-2-1">
+<div class="card"><div class="card-header"><div class="card-title">Evolución de Pérdida Mensual</div></div><div class="chart-container"><canvas id="chartLossEvo"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Factores de Riesgo</div></div><div class="chart-container"><canvas id="chartFactor"></canvas></div></div>
+</div>
 </div>
 
-<div class="upload-zone" id="uploadZone">
-  <label for="fileInput" style="cursor:pointer;display:block">
-    <strong>📂 Arrastra tu CSV aquí o haz clic para seleccionar</strong>
-    <p>Formato esperado: ID_Riesgo, Proceso, Subproceso, Evento_Riesgo, Probabilidad_Inherente, Impacto_Inherente, Nivel_Inherente, Clasificacion_Inherente, Control_Clave, Eficacia_Control_Porc, Nivel_Residual, Clasificacion_Residual, Responsable, Estado…</p>
-  </label>
+<div class="page" id="page-heatmap">
+<div class="card">
+<div class="card-header"><div><div class="card-title">Mapa de Calificación General de Riesgos 5×5</div><div class="card-sub">Frecuencia (deciles) × Impacto · click una celda para ver detalle</div></div>
+<div class="card-actions">
+<div class="tab-pills" id="hmTabs"><button class="tab-pill active" data-imp="Financiero">Financiero</button><button class="tab-pill" data-imp="Operativo">Operativo</button><button class="tab-pill" data-imp="Regulatorio">Regulatorio</button><button class="tab-pill" data-imp="Reputacional">Reputacional</button></div>
+<button class="btn btn-sm" id="hmModeRes">Residual</button><button class="btn btn-sm" id="hmModeInh">Inherente</button>
+</div>
+</div>
+<div id="heatmapGrid" class="heatmap-wrap"></div>
+<div style="display:flex;justify-content:center;gap:18px;margin-top:14px;font-size:11px;color:var(--text-2);flex-wrap:wrap"><span><span class="tag tag-bajo">Bajo</span></span><span><span class="tag tag-medio">Medio</span></span><span><span class="tag tag-alto">Alto</span></span><span><span class="tag tag-critico">Crítico</span></span></div>
+</div>
+<div class="grid-2-1">
+<div class="card" style="margin-top:16px"><div class="card-header"><div class="card-title">Top 10 Riesgos Críticos</div></div><div id="topCriticos" style="max-height:420px;overflow-y:auto"></div></div>
+<div class="card" style="margin-top:16px"><div class="card-header"><div class="card-title">Exposición por Tipo de Impacto</div></div><div id="impactSummary"></div></div>
+</div>
+<div class="drill-panel" id="hmDrillPanel">
+<div class="drill-head"><div><div class="card-title" id="hmDrillTitle">Riesgos en celda</div><div class="card-sub" id="hmDrillSub"></div></div><button class="btn btn-sm" onclick="document.getElementById('hmDrillPanel').classList.remove('open')">✕ Cerrar</button></div>
+<div class="table-wrap"><table class="dt" id="hmDrillTable"><thead><tr><th>ID</th><th>Riesgo</th><th>Proceso</th><th>Factor</th><th>Causa</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+</div>
 </div>
 
-<div class="main" id="main">
-  <div class="kpis" id="kpis"></div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="setTab('vista-matriz')">Matriz 5×5</button>
-    <button class="tab" onclick="setTab('vista-tabla')">Registro completo</button>
-    <button class="tab" onclick="setTab('vista-charts')">Análisis</button>
-  </div>
-
-  <div class="filters" id="filters">
-    <select id="fProceso"><option value="">Todos los procesos</option></select>
-    <select id="fClasInherente"><option value="">Clasificación inherente</option></select>
-    <select id="fClasResidual"><option value="">Clasificación residual</option></select>
-    <select id="fEstado"><option value="">Todos los estados</option></select>
-    <select id="fResponsable"><option value="">Todos los responsables</option></select>
-    <input type="text" id="fSearch" placeholder="Buscar evento…" style="min-width:160px">
-    <button onclick="resetFilters()">✕ Limpiar</button>
-    <button onclick="exportCSV()">↓ Exportar CSV</button>
-  </div>
-
-  <div class="panel active" id="vista-matriz">
-    <div class="grid2">
-      <div class="card">
-        <h3>Riesgo Inherente</h3>
-        <div class="matrix-wrap"><div class="matrix-grid" id="matInherente"></div></div>
-      </div>
-      <div class="card">
-        <h3>Riesgo Residual</h3>
-        <div class="matrix-wrap"><div class="matrix-grid" id="matResidual"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="vista-tabla">
-    <div class="card" style="overflow-x:auto">
-      <table id="tbl">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th class="sortable" onclick="sortBy('Proceso')">Proceso ⇅</th>
-            <th class="sortable" onclick="sortBy('Evento_Riesgo')">Evento ⇅</th>
-            <th>Factor</th>
-            <th class="sortable" onclick="sortBy('Clasificacion_Inherente')">Inherente ⇅</th>
-            <th>Eficacia ctrl</th>
-            <th class="sortable" onclick="sortBy('Clasificacion_Residual')">Residual ⇅</th>
-            <th>Responsable</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-      <div id="pager" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 0;font-size:12px"></div>
-    </div>
-  </div>
-
-  <div class="panel" id="vista-charts">
-    <div class="grid2">
-      <div class="card"><h3>Distribución por clasificación inherente</h3><canvas id="chartInherente"></canvas></div>
-      <div class="card"><h3>Distribución por clasificación residual</h3><canvas id="chartResidual"></canvas></div>
-    </div>
-    <div class="grid2">
-      <div class="card"><h3>Top 10 procesos por exposición</h3><canvas id="chartProcesos"></canvas></div>
-      <div class="card"><h3>Eficacia de controles por proceso</h3><canvas id="chartEficacia"></canvas></div>
-    </div>
-    <div class="grid2">
-      <div class="card"><h3>Estado del plan de acción</h3><canvas id="chartEstado"></canvas></div>
-      <div class="card"><h3>Reducción inherente → residual</h3><canvas id="chartReduccion"></canvas></div>
-    </div>
-  </div>
+<div class="page" id="page-procheatmap">
+<div class="card">
+<div class="card-header"><div><div class="card-title">Mapa de Calificación por Proceso 5×5</div><div class="card-sub">Posición agregada por proceso · Frecuencia × Impacto</div></div>
+<div class="card-actions">
+<div class="tab-pills" id="phmTabs"><button class="tab-pill active" data-imp="Financiero">Financiero</button><button class="tab-pill" data-imp="Operativo">Operativo</button><button class="tab-pill" data-imp="Regulatorio">Regulatorio</button><button class="tab-pill" data-imp="Reputacional">Reputacional</button></div>
+<button class="btn btn-sm" id="phmModeRes">Residual</button><button class="btn btn-sm" id="phmModeInh">Inherente</button>
+</div>
+</div>
+<div id="procHeatmapGrid" class="heatmap-wrap"></div>
+<div style="display:flex;justify-content:center;gap:18px;margin-top:14px;font-size:11px;color:var(--text-2);flex-wrap:wrap"><span><span class="tag tag-bajo">Bajo</span></span><span><span class="tag tag-medio">Medio</span></span><span><span class="tag tag-alto">Alto</span></span><span><span class="tag tag-critico">Crítico</span></span></div>
+</div>
+<div class="card" style="margin-top:16px"><div class="card-header"><div><div class="card-title">Ranking de Procesos</div><div class="card-sub">Ordenado por exposición acumulada en la categoría seleccionada</div></div></div><div id="procRanking" style="max-height:500px;overflow-y:auto"></div></div>
+<div class="drill-panel" id="procDrillPanel">
+<div class="drill-head"><div><div class="card-title" id="procDrillTitle">Procesos en celda</div><div class="card-sub" id="procDrillSub"></div></div><button class="btn btn-sm" onclick="document.getElementById('procDrillPanel').classList.remove('open')">✕ Cerrar</button></div>
+<div class="table-wrap"><table class="dt" id="procDrillTable"><thead><tr><th>Proceso</th><th># Riesgos</th><th>Prob. Prom.</th><th>Imp. Prom.</th><th>Exposición</th><th>Críticos</th><th>% Mit.</th></tr></thead><tbody></tbody></table></div>
+</div>
 </div>
 
-<div id="modalWrap"></div>
+<div class="page" id="page-quarterly">
+<div class="kpi-grid">
+<div class="kpi info"><div class="kpi-label">Trimestres Evaluados</div><div class="kpi-value" id="qtrTotal">0</div></div>
+<div class="kpi danger"><div class="kpi-label">Δ Críticos vs Anterior</div><div class="kpi-value" id="qtrDeltaCrit">0</div></div>
+<div class="kpi warning"><div class="kpi-label">Δ Score Promedio</div><div class="kpi-value" id="qtrDeltaScore">0</div></div>
+<div class="kpi success"><div class="kpi-label">Tendencia</div><div class="kpi-value" id="qtrTrend" style="font-size:16px">–</div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Evolución Trimestral del Perfil de Riesgo</div></div><div class="chart-container tall"><canvas id="chartQtrLevels"></canvas></div></div>
+<div class="grid-2">
+<div class="card"><div class="card-header"><div class="card-title">Score Promedio por Trimestre</div></div><div class="chart-container"><canvas id="chartQtrScore"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Top 5 Procesos · Evolución</div></div><div class="chart-container"><canvas id="chartQtrProcesos"></canvas></div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Comparativa Trimestral</div></div>
+<div class="table-wrap"><table class="dt" id="qtrTable"><thead><tr><th>Trimestre</th><th>Total</th><th>Bajo</th><th>Medio</th><th>Alto</th><th>Crítico</th><th>Score Prom.</th><th>% Crítico</th><th>Δ</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-critical">
+<div class="kpi-grid">
+<div class="kpi danger"><div class="kpi-icon">!</div><div class="kpi-label">Total Críticos</div><div class="kpi-value" id="critTotal">0</div></div>
+<div class="kpi warning"><div class="kpi-icon">▲</div><div class="kpi-label">Sin Plan</div><div class="kpi-value" id="critSinPlan">0</div></div>
+<div class="kpi danger"><div class="kpi-icon">$</div><div class="kpi-label">Pérdida</div><div class="kpi-value" id="critPerdida">$0</div></div>
+<div class="kpi info"><div class="kpi-icon">⏱</div><div class="kpi-label">Días Promedio</div><div class="kpi-value" id="critDias">0</div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Ranking de Críticos & Fuera de Apetito</div></div>
+<div class="table-wrap"><table class="dt" id="critTable"><thead><tr><th>#</th><th>ID</th><th>Riesgo</th><th>Proceso</th><th>Causa</th><th>Inh.</th><th>Res.</th><th>Apetito</th><th>Estado</th><th>P. Neta</th><th></th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-losses">
+<div class="kpi-grid">
+<div class="kpi info"><div class="kpi-label">Eventos</div><div class="kpi-value" id="lossEventos">0</div></div>
+<div class="kpi danger"><div class="kpi-label">Bruta</div><div class="kpi-value" id="lossBruta">$0</div></div>
+<div class="kpi success"><div class="kpi-label">Recuperado</div><div class="kpi-value" id="lossRecup">$0</div></div>
+<div class="kpi warning"><div class="kpi-label">Neta</div><div class="kpi-value" id="lossNeta">$0</div></div>
+<div class="kpi info"><div class="kpi-label">% Recup.</div><div class="kpi-value" id="lossPctRec">0%</div></div>
+</div>
+<div class="grid-2-1">
+<div class="card"><div class="card-header"><div class="card-title">Evolución Mensual</div></div><div class="chart-container tall"><canvas id="chartLossMonth"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Por Categoría Basel</div></div><div class="chart-container tall"><canvas id="chartLossBasel"></canvas></div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Top Eventos</div></div>
+<div class="table-wrap"><table class="dt" id="lossTable"><thead><tr><th>ID</th><th>Fecha</th><th>Proceso</th><th>Riesgo</th><th>Basel</th><th>Bruta</th><th>Recup.</th><th>Neta</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-kris">
+<div class="kpi-grid">
+<div class="kpi success"><div class="kpi-label">Verde</div><div class="kpi-value" id="kriVerde">0</div></div>
+<div class="kpi warning"><div class="kpi-label">Amarillo</div><div class="kpi-value" id="kriAmarillo">0</div></div>
+<div class="kpi danger"><div class="kpi-label">Rojo</div><div class="kpi-value" id="kriRojo">0</div></div>
+<div class="kpi info"><div class="kpi-label">Total</div><div class="kpi-value" id="kriTotal">0</div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Indicadores Clave de Riesgo</div></div><div class="gauge-grid" id="kriGauges"></div></div>
+<div class="card" style="margin-top:16px"><div class="card-header"><div class="card-title">Detalle KRIs</div></div>
+<div class="table-wrap"><table class="dt" id="kriTable"><thead><tr><th>ID</th><th>KRI</th><th>Valor</th><th>Aceptable</th><th>Tolerable</th><th>Crítico</th><th>Estado</th><th>Proceso</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-controls">
+<div class="kpi-grid">
+<div class="kpi success"><div class="kpi-label">Efect. Promedio</div><div class="kpi-value" id="ctrlEfect">0%</div></div>
+<div class="kpi info"><div class="kpi-label">Total</div><div class="kpi-value" id="ctrlTotal">0</div></div>
+<div class="kpi warning"><div class="kpi-label">Débiles</div><div class="kpi-value" id="ctrlDebiles">0</div></div>
+<div class="kpi success"><div class="kpi-label">% Mitigación</div><div class="kpi-value" id="ctrlMitig">0%</div></div>
+</div>
+<div class="grid-2">
+<div class="card"><div class="card-header"><div class="card-title">Efect. por Tipo</div></div><div class="chart-container"><canvas id="chartCtrlTipo"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Frecuencia</div></div><div class="chart-container"><canvas id="chartCtrlFreq"></canvas></div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Inventario</div></div>
+<div class="table-wrap"><table class="dt" id="ctrlTable"><thead><tr><th>ID</th><th>Control</th><th>Tipo</th><th>Frec.</th><th>Efect.</th><th>Riesgo</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-factors">
+<div class="grid-2">
+<div class="card"><div class="card-header"><div class="card-title">Factor de Riesgo · 4 BCBS</div></div><div class="chart-container tall"><canvas id="chartFactor2"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Top Causas</div></div><div class="chart-container tall"><canvas id="chartCausas2"></canvas></div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Detalle de Causas por Factor</div></div>
+<div class="table-wrap"><table class="dt" id="causasTable"><thead><tr><th>Factor</th><th>Causa</th><th># Riesgos</th><th>Score Prom.</th><th>Exposición $</th><th>Pérd. Neta</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-actions">
+<div class="kpi-grid">
+<div class="kpi info"><div class="kpi-label">Total</div><div class="kpi-value" id="planTotal">0</div></div>
+<div class="kpi success"><div class="kpi-label">Completados</div><div class="kpi-value" id="planComp">0</div></div>
+<div class="kpi warning"><div class="kpi-label">En Curso</div><div class="kpi-value" id="planCurso">0</div></div>
+<div class="kpi danger"><div class="kpi-label">Vencidos</div><div class="kpi-value" id="planVenc">0</div></div>
+<div class="kpi warning"><div class="kpi-label">Próximos 30d</div><div class="kpi-value" id="planProx">0</div></div>
+</div>
+<div class="grid-2-1">
+<div class="card"><div class="card-header"><div class="card-title">Estado</div></div><div class="chart-container"><canvas id="chartPlan"></canvas></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Por Responsable</div></div><div class="chart-container"><canvas id="chartPlanResp"></canvas></div></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">Detalle</div></div>
+<div class="table-wrap"><table class="dt" id="planTable"><thead><tr><th>ID</th><th>Riesgo</th><th>Proceso</th><th>Responsable</th><th>Compromiso</th><th>Estado</th><th>Días</th></tr></thead><tbody></tbody></table></div></div>
+</div>
+
+<div class="page" id="page-alerts">
+<div class="grid-2">
+<div class="card"><div class="card-header"><div class="card-title">Alertas Activas</div></div><div id="alertsList" class="alert-list"></div></div>
+<div class="card"><div class="card-header"><div class="card-title">Reglas</div></div>
+<ul style="list-style:none;padding:0;font-size:12px">
+<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--red)">●</b> <b>Riesgo Crítico:</b> Frecuencia × Impacto = Crítico (según matriz)</li>
+<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--orange)">●</b> <b>Fuera de Apetito:</b> Exposición > Tolerancia</li>
+<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--red)">●</b> <b>KRI Crítico:</b> Valor ≥ Umbral Crítico</li>
+<li style="padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--orange)">●</b> <b>Plan Vencido:</b> Compromiso < hoy y estado ≠ Completado</li>
+<li style="padding:8px 0"><b style="color:var(--orange)">●</b> <b>Control Débil:</b> Efectividad < 60% en riesgo Alto/Crítico</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="page" id="page-report">
+<div class="card">
+<div class="card-header"><div><div class="card-title">Informe Ejecutivo de Gestión de Riesgo Operacional</div><div class="card-sub">Genera un reporte profesional listo para presentar al Comité de Riesgos · exporta a Word</div></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:14px">
+<div>
+<div class="field" style="margin-bottom:10px"><label>Período del Informe</label><input type="text" id="rptPeriodo" value="Mayo 2026 · 2°Q-2026"></div>
+<div class="field" style="margin-bottom:10px"><label>Entidad</label><input type="text" id="rptEntidad" value="Prime Consultores"></div>
+<div class="field" style="margin-bottom:10px"><label>Elaborado por</label><input type="text" id="rptAutor" value="Gerencia de Riesgos"></div>
+<div class="field" style="margin-bottom:10px"><label>Dirigido a</label><input type="text" id="rptDirigido" value="Comité de Riesgos y Gerencia General"></div>
+<div class="field" style="margin-bottom:10px"><label>Notas / Comentarios Ejecutivos</label><textarea id="rptNotas" rows="4" placeholder="Comentarios contextuales que se incluirán en el informe..."></textarea></div>
+</div>
+<div>
+<div style="background:var(--blue-soft);padding:14px;border-radius:8px;font-size:12px;line-height:1.7">
+<b style="color:var(--navy);font-size:13px;display:block;margin-bottom:8px">Estructura del Informe:</b>
+<ol style="padding-left:22px;color:var(--text-2)">
+<li>Carátula y resumen ejecutivo</li>
+<li>Contexto y alcance</li>
+<li>Marco metodológico (Basilea II/III, COSO ERM)</li>
+<li>KPIs principales del período</li>
+<li>Mapa de calificación de riesgos</li>
+<li>Top 10 riesgos críticos</li>
+<li>Exposición por proceso</li>
+<li>Análisis por categoría de impacto</li>
+<li>Causas más frecuentes</li>
+<li>Evolución trimestral</li>
+<li>Estado de controles</li>
+<li>KRIs en monitoreo</li>
+<li>Planes de acción y mitigación</li>
+<li>Conclusiones y recomendaciones</li>
+<li>Anexos</li>
+</ol>
+</div>
+</div>
+</div>
+<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+<button class="btn" id="btnPreviewReport">👁 Vista Previa</button>
+<button class="btn btn-success" id="btnDownloadReport">⬇ Descargar Word (.doc)</button>
+</div>
+</div>
+<div class="card" style="margin-top:16px;display:none" id="reportPreview">
+<div class="card-header"><div><div class="card-title">Vista Previa del Informe</div><div class="card-sub">Así se verá en Word</div></div><button class="btn btn-sm" onclick="document.getElementById('reportPreview').style.display='none'">✕</button></div>
+<div id="reportContent" style="background:#fff;padding:30px;border:1px solid var(--border);max-height:600px;overflow-y:auto;font-family:Calibri,Arial,sans-serif"></div>
+</div>
+</div>
+
+<div class="page" id="page-matrix">
+<div class="card">
+<div class="card-header"><div><div class="card-title">Matriz Completa</div><div class="card-sub" id="matrixCount">0 riesgos</div></div><div class="card-actions"><button class="btn btn-sm btn-primary" onclick="openRiskModal()">+ Nuevo</button></div></div>
+<div class="table-wrap" style="max-height:600px;overflow:auto"><table class="dt" id="matrixTable"><thead><tr><th class="sortable" data-sort="ID_Riesgo">ID</th><th class="sortable" data-sort="Proceso">Proceso</th><th>Riesgo</th><th>Factor</th><th>Causa</th><th>Inh.</th><th>Res.</th><th>Exp. $</th><th>Estado</th><th>Resp.</th><th></th></tr></thead><tbody></tbody></table></div>
+</div>
+</div>
+
+<div class="page" id="page-settings">
+<div class="grid-2">
+<div class="card"><div class="card-header"><div class="card-title">Dashboard v3.0</div></div>
+<div style="font-size:13px;line-height:1.7;color:var(--text-2)">
+<p><b style="color:var(--navy)">Novedades v3.0:</b></p>
+<ul style="padding-left:20px">
+<li>Frecuencia por deciles: 10% / 20% / 50% / 75% / 100%</li>
+<li>4 categorías de impacto: Financiero / Operativo / Regulatorio / Reputacional</li>
+<li>Catálogo de Causas vinculado al Factor</li>
+<li>Mapa de calor dinámico por tipo de impacto</li>
+<li>Generador de Informe Ejecutivo a Word</li>
+<li><b>Integración con app RCSA</b> (mapeo automático de campos)</li>
+</ul>
+<p style="margin-top:14px"><b style="color:var(--navy)">Primera vez:</b> Ve a <b>↻ Cargar dataset v3.0</b></p>
+</div></div>
+<div class="card"><div class="card-header"><div class="card-title">Acciones</div></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<button class="btn btn-success" id="btnExport2">⬇ Excel completo</button>
+<button class="btn btn-primary" id="btnLoadDemo">↻ Cargar dataset v3.0</button>
+<button class="btn btn-success" id="btnRegenHist" title="Genera 10 trimestres de histórico (2024-Q1 a 2026-Q2) para todos los riesgos cargados">📊 Generar Histórico Trimestral (2024-2026)</button>
+<button class="btn btn-danger" id="btnReset">⌫ Vaciar datos</button>
+</div></div>
+</div>
+<div class="card" style="margin-top:16px">
+<div class="card-header"><div><div class="card-title">🔗 Integración con RCSA Risk Assessment App</div><div class="card-sub">Importa autoevaluaciones desde la herramienta RCSA en formato CSV o XLSX</div></div><div class="card-actions"><button class="btn btn-primary" id="btnRcsaTpl">⬇ Descargar Plantilla RCSA (.xlsx)</button></div></div>
+<div style="font-size:13px;line-height:1.7;color:var(--text-2)">
+<p><b style="color:var(--navy)">Cómo integrar:</b></p>
+<ol style="padding-left:22px">
+<li>En la <b>app RCSA</b> completa la autoevaluación de riesgos del proceso correspondiente.</li>
+<li>Exporta el resultado en formato <b>CSV o XLSX</b> desde la app RCSA.</li>
+<li>En este Dashboard haz click en <b>⬆ Importar</b> (barra superior) y selecciona el archivo exportado.</li>
+<li>El sistema <b>detecta automáticamente</b> el formato RCSA y mapea los campos a la estructura del Dashboard.</li>
+<li>Confirma si deseas <b>reemplazar</b> los datos actuales o <b>hacer merge</b> por ID (actualiza existentes, agrega nuevos).</li>
+<li>Los riesgos importados se integran a todas las vistas: mapa de calor, evolución trimestral, informe ejecutivo, etc.</li>
+</ol>
+<p style="margin-top:10px"><b style="color:var(--navy)">Mapeo automático de campos:</b> El Dashboard reconoce alias comunes (case-insensitive). Por ejemplo:</p>
+<ul style="padding-left:22px;font-size:12px">
+<li><code>Risk ID</code>, <code>risk_id</code>, <code>código</code> → <b>ID_Riesgo</b></li>
+<li><code>risk_description</code>, <code>descripción del riesgo</code> → <b>Riesgo_Operacional</b></li>
+<li><code>inherent_probability</code>, <code>likelihood_inh</code>, <code>frecuencia inherente</code> → <b>Probabilidad_Inherente</b></li>
+<li><code>residual_impact</code>, <code>impacto residual</code> → <b>Impacto_Residual</b></li>
+<li><code>control_effectiveness</code>, <code>efectividad</code> → <b>Efectividad_Control</b></li>
+<li><code>risk_owner</code>, <code>owner</code>, <code>accountable</code> → <b>Responsable</b></li>
+<li><code>due_date</code>, <code>target_date</code>, <code>deadline</code> → <b>Fecha_Compromiso</b></li>
+</ul>
+<p style="margin-top:10px;background:var(--blue-soft);padding:10px;border-radius:6px"><b style="color:var(--navy)">💡 Tip:</b> Descarga la plantilla con el botón de arriba. Incluye una hoja <b>Plantilla_RCSA</b> con la estructura recomendada y una hoja <b>Diccionario_Campos</b> con todos los alias aceptados — esta plantilla puede usarse como contrato de integración entre la app RCSA y el Dashboard.</p>
+<p style="margin-top:10px"><b style="color:var(--navy)">Campos derivados automáticamente:</b></p>
+<ul style="padding-left:22px;font-size:12px">
+<li>Si solo viene <code>Impacto_Residual</code>, se asume Financiero y se replica en <code>Impacto_Financiero_Res</code>.</li>
+<li>Si faltan los niveles (<code>Nivel_Riesgo_*</code>), se calculan como Probabilidad × Impacto.</li>
+<li>Si no hay <code>ID_Riesgo</code>, se genera uno automático con prefijo <code>RCSA-XXXXXX</code>.</li>
+<li>Las fechas se normalizan a formato ISO <code>YYYY-MM-DD</code>.</li>
+</ul>
+</div>
+</div>
+</div>
+
+</div>
+</main>
+</div>
+
+<div class="modal" id="riskModal">
+<div class="modal-card">
+<div class="modal-head"><h2 id="modalTitle">Nuevo Riesgo</h2><button class="btn btn-sm btn-ghost" onclick="closeRiskModal()">✕</button></div>
+<div class="modal-body">
+<form id="riskForm">
+<div class="section-title">Identificación</div>
+<div class="form-grid">
+<div class="field"><label>ID *</label><input name="ID_Riesgo" required></div>
+<div class="field"><label>Fecha</label><input type="date" name="Fecha_Registro"></div>
+<div class="field"><label>Proceso *</label><input name="Proceso" list="dlProceso" required></div>
+<div class="field"><label>Subproceso</label><input name="Subproceso"></div>
+<div class="field"><label>Unidad</label><input name="Unidad" list="dlUnidad"></div>
+<div class="field"><label>Responsable</label><input name="Responsable" list="dlResp"></div>
+</div>
+<div class="section-title">Descripción del Riesgo</div>
+<div class="form-grid">
+<div class="field full"><label>Riesgo * (formato: "Posible afectación" + "evento")</label><textarea name="Riesgo_Operacional" required></textarea></div>
+<div class="field"><label>Categoría Basel</label><select name="Categoria_Basilea"><option></option><option>Fraude Interno</option><option>Fraude Externo</option><option>Relaciones Laborales y Seguridad</option><option>Clientes, Productos y Prácticas</option><option>Daños a Activos Físicos</option><option>Interrupción del Negocio y Fallas Tecnológicas</option><option>Ejecución, Entrega y Gestión de Procesos</option></select></div>
+<div class="field"><label>Factor</label><select name="Factor_Riesgo" id="formFactor" onchange="updateCausaOptions()"><option></option><option>Personas</option><option>Procesos</option><option>Tecnología</option><option>Eventos Externos</option></select></div>
+<div class="field"><label>Causa (depende del Factor)</label><select name="Causa" id="formCausa"><option></option></select></div>
+<div class="field"><label>Consecuencia</label><input name="Consecuencia"></div>
+</div>
+<div class="section-title">Frecuencia (Deciles)</div>
+<div class="help-box"><b>Frecuencia:</b> 1=Raro(<10%) · 2=Improbable(10-25%) · 3=Posible(25-50%) · 4=Muy probable(50-75%) · 5=Casi cierto(>75%)<br>Multiplicador para exposición: 10% / 20% / 50% / 75% / 100%</div>
+<div class="form-grid">
+<div class="field"><label>Frecuencia Inherente (1-5) *</label><input type="number" min="1" max="5" name="Probabilidad_Inherente" required></div>
+<div class="field"><label>Frecuencia Residual (1-5) *</label><input type="number" min="1" max="5" name="Probabilidad_Residual" required></div>
+</div>
+<div class="section-title">Impactos por Categoría (Inherente / Residual, escala 1-5)</div>
+<div class="help-box"><b>Financiero:</b> 1≤$20K · 2≤$40K · 3≤$100K · 4≤$500K · 5>$500K<br><b>Operativo:</b> 1<4h · 2<8h · 3<24h · 4=1-5d · 5>5d<br><b>Regulatorio:</b> 1=Atención · 2=Admin. · 3=Económica · 4=Multa · 5=Suspensión<br><b>Reputacional:</b> 1=Sin exp. · 2=Limitado · 3=Público · 4=RR.SS. · 5=Daño imagen</div>
+<div class="form-grid">
+<div class="field"><label>Financiero Inh.</label><input type="number" min="1" max="5" name="Impacto_Financiero_Inh"></div>
+<div class="field"><label>Financiero Res.</label><input type="number" min="1" max="5" name="Impacto_Financiero_Res"></div>
+<div class="field"><label>Operativo Inh.</label><input type="number" min="1" max="5" name="Impacto_Operativo_Inh"></div>
+<div class="field"><label>Operativo Res.</label><input type="number" min="1" max="5" name="Impacto_Operativo_Res"></div>
+<div class="field"><label>Regulatorio Inh.</label><input type="number" min="1" max="5" name="Impacto_Regulatorio_Inh"></div>
+<div class="field"><label>Regulatorio Res.</label><input type="number" min="1" max="5" name="Impacto_Regulatorio_Res"></div>
+<div class="field"><label>Reputacional Inh.</label><input type="number" min="1" max="5" name="Impacto_Reputacional_Inh"></div>
+<div class="field"><label>Reputacional Res.</label><input type="number" min="1" max="5" name="Impacto_Reputacional_Res"></div>
+</div>
+<div class="section-title">Apetito y Estado</div>
+<div class="form-grid">
+<div class="field"><label>Apetito</label><select name="Apetito_Riesgo"><option></option><option>Bajo</option><option>Medio</option><option>Alto</option></select></div>
+<div class="field"><label>Tolerancia ($)</label><input type="number" name="Tolerancia_Riesgo"></div>
+<div class="field"><label>Estado</label><select name="Estado_Riesgo"><option>Activo</option><option>En Tratamiento</option><option>Mitigado</option><option>Cerrado</option></select></div>
+</div>
+<div class="section-title">Controles</div>
+<div class="form-grid">
+<div class="field full"><label>Control Clave</label><input name="Control_Clave"></div>
+<div class="field"><label>Tipo</label><select name="Tipo_Control"><option></option><option>Preventivo</option><option>Detectivo</option><option>Correctivo</option></select></div>
+<div class="field"><label>Frecuencia Control</label><select name="Frecuencia_Control"><option></option><option>Continua</option><option>Diaria</option><option>Semanal</option><option>Mensual</option><option>Trimestral</option><option>Anual</option></select></div>
+<div class="field"><label>Efectividad (%)</label><input type="number" min="0" max="100" name="Efectividad_Control"></div>
+</div>
+<div class="section-title">KRI</div>
+<div class="form-grid">
+<div class="field"><label>Nombre</label><input name="KRI"></div>
+<div class="field"><label>Valor</label><input type="number" step="0.01" name="Valor_KRI"></div>
+<div class="field"><label>Aceptable</label><input type="number" step="0.01" name="Umbral_Aceptable"></div>
+<div class="field"><label>Tolerable</label><input type="number" step="0.01" name="Umbral_Tolerable"></div>
+<div class="field"><label>Crítico</label><input type="number" step="0.01" name="Umbral_Critico"></div>
+</div>
+<div class="section-title">Pérdidas</div>
+<div class="form-grid">
+<div class="field"><label>Bruta</label><input type="number" step="0.01" name="Perdida_Bruta"></div>
+<div class="field"><label>Recuperada</label><input type="number" step="0.01" name="Perdida_Recuperada"></div>
+<div class="field"><label>Neta</label><input type="number" step="0.01" name="Perdida_Neta"></div>
+<div class="field"><label>Fecha Evento</label><input type="date" name="Fecha_Evento"></div>
+</div>
+<div class="section-title">Plan</div>
+<div class="form-grid">
+<div class="field"><label>Estado Plan</label><select name="Estado_Plan_Accion"><option></option><option>No Iniciado</option><option>En Curso</option><option>Completado</option><option>Vencido</option></select></div>
+<div class="field"><label>Compromiso</label><input type="date" name="Fecha_Compromiso"></div>
+</div>
+</form>
+<datalist id="dlProceso"></datalist><datalist id="dlUnidad"></datalist><datalist id="dlResp"></datalist>
+</div>
+<div class="modal-foot"><button class="btn" onclick="closeRiskModal()">Cancelar</button><button class="btn btn-primary" id="btnSaveRisk">Guardar</button></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-let ALL=[], filtered=[], sortCol='', sortAsc=true, page=1;
-const PER_PAGE=20;
-const charts={};
+/* =============== CONSTANTS =============== */
+const STORAGE_KEY='matriz_grop_v30';
+let DATA=[],FILTERED=[],CHARTS={},editingId=null,hmMode='res',phmMode='res',sortKey=null,sortDir=1;
+let impactType='Financiero',pImpactType='Financiero';
+const QUARTERS=['2024-Q1','2024-Q2','2024-Q3','2024-Q4','2025-Q1','2025-Q2','2025-Q3','2025-Q4','2026-Q1','2026-Q2'];
+const PROC_LIST=['Crédito','Operaciones','Tesorería','Cumplimiento','TI / Tecnología','Recursos Humanos','Atención al Cliente','Cobranzas','Caja y Bóveda','Riesgos','Auditoría Interna','Procesamiento de Pagos','Banca Digital','Lavado de Activos','Compras y Logística'];
+const UNI_LIST=['Banca Comercial','Banca Personas','Banca Empresa','Tesorería','Operaciones','Tecnología','Cumplimiento','Riesgos','Talento Humano','Finanzas'];
+const RESP_LIST=['Gerencia de Riesgos','Gerencia de TI','Gerencia de Operaciones','Gerencia Comercial','Cumplimiento','Auditoría Interna','Tesorería','RRHH','Seguridad de la Información','Procesos'];
+const BASEL_CATS=['Fraude Interno','Fraude Externo','Relaciones Laborales y Seguridad','Clientes, Productos y Prácticas','Daños a Activos Físicos','Interrupción del Negocio y Fallas Tecnológicas','Ejecución, Entrega y Gestión de Procesos'];
+const FACTORS=['Personas','Procesos','Tecnología','Eventos Externos'];
+const PALETTE=['#1e88e5','#26a69a','#ef6c00','#c62828','#7b1fa2','#5d4037','#00897b','#3949ab','#f9a825','#8e24aa','#43a047','#d81b60'];
 
-const zClass=v=>{
-  if(typeof v==='string'){
-    const u=v.toUpperCase();
-    if(u.includes('CRÍT')||u.includes('CRIT'))return'C';
-    if(u.includes('ALTO')||u.includes('HIGH'))return'A';
-    if(u.includes('MOD')||u.includes('MEDIO'))return'M';
-    if(u.includes('BAJO')||u.includes('LOW'))return'B';
-  }
-  if(typeof v==='number'){if(v>=16)return'C';if(v>=9)return'A';if(v>=4)return'M';return'B';}
-  return'M';
+const HM_COLORS={'5-1':'medio','5-2':'medio','5-3':'alto','5-4':'alto','5-5':'critico','4-1':'medio','4-2':'medio','4-3':'alto','4-4':'alto','4-5':'critico','3-1':'bajo','3-2':'medio','3-3':'alto','3-4':'alto','3-5':'critico','2-1':'bajo','2-2':'medio','2-3':'alto','2-4':'alto','2-5':'critico','1-1':'bajo','1-2':'medio','1-3':'medio','1-4':'alto','1-5':'critico'};
+const PROB_PCT=[null,10,20,50,75,100];
+const PROB_LABELS=[null,'1. Raro','2. Improbable','3. Posible','4. Muy probable','5. Casi cierto'];
+const PROB_PCT_LABELS=[null,'< 10%','10-25%','25-50%','50-75%','> 75%'];
+
+const IMPACT_CATEGORIES={
+Financiero:{label:'Financiero',unit:'$',tiers:[null,
+{label:'1. Insignificante',name:'Insignificante',max:20000,short:'≤ $20K'},
+{label:'2. Menor',name:'Menor',max:40000,short:'$20K-$40K'},
+{label:'3. Moderado',name:'Moderado',max:100000,short:'$40K-$100K'},
+{label:'4. Mayor',name:'Mayor',max:500000,short:'$100K-$500K'},
+{label:'5. Significativo',name:'Significativo',max:5000000,short:'> $500K'}]},
+Operativo:{label:'Operativo',unit:'h',tiers:[null,
+{label:'1. < 4 horas',name:'< 4h',max:4,short:'< 4 horas'},
+{label:'2. < 8 horas',name:'< 8h',max:8,short:'< 8 horas'},
+{label:'3. < 24 horas',name:'< 24h',max:24,short:'< 24 horas'},
+{label:'4. 1 a 5 días',name:'1-5 d',max:120,short:'1 a 5 días'},
+{label:'5. > 5 días',name:'> 5 d',max:240,short:'> 5 días'}]},
+Regulatorio:{label:'Regulatorio',unit:'',tiers:[null,
+{label:'1. Llamada de atención',name:'Atención',max:1,short:'Llamada atención'},
+{label:'2. Sanción administrativa',name:'Admin.',max:2,short:'Sanción admin.'},
+{label:'3. Sanción económica',name:'Económica',max:3,short:'Sanción económica'},
+{label:'4. Multa',name:'Multa',max:4,short:'Multa'},
+{label:'5. Suspensión actividades',name:'Suspensión',max:5,short:'Suspensión'}]},
+Reputacional:{label:'Reputacional',unit:'',tiers:[null,
+{label:'1. Sin exposición',name:'Sin exp.',max:1,short:'Sin exposición'},
+{label:'2. Conocimiento limitado',name:'Limitado',max:2,short:'Conoc. limitado'},
+{label:'3. Conocimiento público',name:'Público',max:3,short:'Conoc. público'},
+{label:'4. Redes sociales',name:'RR.SS.',max:4,short:'Redes sociales'},
+{label:'5. Daño de imagen',name:'Daño',max:5,short:'Daño imagen/marca'}]}
 };
-const zLabel={'C':'Crítico','A':'Alto','M':'Moderado','B':'Bajo'};
-const zBadge={'C':'bc','A':'ba','M':'bm','B':'bb'};
-const stateBadge=s=>{if(!s)return'bobs';const u=s.toLowerCase();if(u.includes('activ'))return'bact';if(u.includes('pend'))return'bpen';if(u.includes('cerr')||u.includes('resuel'))return'bcerr';return'bobs';};
-const pI=['Insignificante','Menor','Moderado','Mayor','Catastrófico'];
-const pP=['Raro','Improbable','Posible','Probable','Casi seguro'];
 
-document.getElementById('fileInput').addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f)return;
-  Papa.parse(f,{header:true,skipEmptyLines:true,dynamicTyping:true,complete:r=>{
-    ALL=r.data; init();
-  }});
+const CAUSES_BY_FACTOR={
+'Personas':['Error humano','Personal inadecuadamente capacitado','Negligencia operativa','Fraude interno por colusión','Sobrecarga laboral','Alta rotación de personal','Falta de supervisión','Conflicto de intereses'],
+'Procesos':['Procedimiento desactualizado','Brecha en el diseño del proceso','Falta de segregación de funciones','Documentación insuficiente','Ausencia de controles clave','Errores en validación','Falta de automatización','Procesos manuales propensos a error'],
+'Tecnología':['Falla de hardware','Falla de software','Vulnerabilidad de seguridad no parchada','Capacidad insuficiente','Falta de redundancia / DRP','Configuración inadecuada','Software obsoleto','Falla en integración de sistemas'],
+'Eventos Externos':['Desastre natural','Evento pandémico / crisis sanitaria','Ciberataque externo','Cambio regulatorio inesperado','Crisis económica','Acción de terceros / proveedores','Disturbio social','Fraude externo']
+};
+
+const RISK_NAMES=['Posibles pérdidas financieras por fraude interno con colusión en procesos de crédito','Posibles pérdidas a clientes por ataques de phishing dirigidos a banca digital','Posible interrupción operativa por caída del core bancario','Posibles reclamaciones por errores en cálculo de comisiones','Posibles pérdidas por suplantación de identidad en apertura de cuentas','Posibles multas y daño reputacional por fuga de información sensible','Posibles sanciones de la UIF por lavado de activos no detectado','Posibles multas por incumplir reportes regulatorios a la SBS','Posibles pérdidas patrimoniales por robo de efectivo en bóveda','Posible pérdida de información por falla en backup','Posible deterioro de experiencia del cliente por demoras','Posible interrupción operativa por ciberataque ransomware','Posibles diferencias contables por errores en conciliación','Posible interrupción por pérdida de personal clave','Posible pérdida de ingresos por caída de canales digitales','Posibles pérdidas por fraude con tarjetas clonadas','Posibles penalidades por incumplimiento de SLA','Posible afectación a estados financieros por errores en provisiones','Posibles pérdidas por acceso no autorizado a sistemas','Posibles sanciones INDECOPI por inadecuada gestión de quejas','Posibles pérdidas por errores en transferencias','Posibles pérdidas por daño físico a activos','Posible discontinuidad por evento pandémico','Posibles sanciones por falla en KYC en onboarding','Posibles pérdidas crediticias por errores de scoring','Posibles multas por errores en reportes financieros','Posibles fraudes por fallas en autenticación','Posibles disputas legales por pérdida de documentación','Posible pérdida de oportunidades por demoras de aprobación','Posibles brechas por vulnerabilidades no parchadas'];
+const KRI_NAMES=['% disponibilidad core bancario','Tasa de fraude por canal digital','# reclamos por mes','% conciliaciones fuera de plazo','# accesos no autorizados','% disponibilidad ATM','Tiempo resolución incidentes','# eventos pérdida >$10K','% rotación personal crítico','Días vencimiento parches','% errores operativos','Tiempo respuesta atención','# observaciones auditoría','% cumplimiento SOX','Volumen transacciones rechazadas'];
+const CONTROLS=['Doble validación con segregación','Monitoreo continuo de transacciones','Backup diario verificado','BCP/DRP','Capacitación anti-fraude','MFA en accesos críticos','Reportes regulatorios automatizados','Conciliación diaria','Logs auditados','Revisión de límites','Encriptación E2E','Procedimiento KYC reforzado','Pruebas DRP semestrales','Comité de riesgos mensual','Pen-testing trimestral'];
+
+/* =============== RCSA FIELD MAPPING =============== */
+// Aliases de columnas que pueden venir desde la app RCSA o variaciones comunes.
+// La clave es el campo canónico del Dashboard. El array son nombres alternativos (case-insensitive).
+const FIELD_ALIASES={
+ID_Riesgo:['id_riesgo','id','risk_id','riskid','codigo','código','codigo_riesgo','risk code','id riesgo','no.','#'],
+Fecha_Registro:['fecha_registro','fecha registro','date','assessment_date','assessment date','fecha evaluación','fecha evaluacion','fecha'],
+Proceso:['proceso','process','area','área','area/proceso','business process','process_name'],
+Subproceso:['subproceso','sub-proceso','sub_proceso','sub process','subprocess','subprocess_name'],
+Unidad:['unidad','unit','department','departamento','business unit','bu'],
+Riesgo_Operacional:['riesgo_operacional','riesgo','risk','risk_description','risk description','descripción del riesgo','descripcion del riesgo','descripción','descripcion','risk_name','risk name','nombre del riesgo'],
+Evento_Riesgo:['evento_riesgo','evento','event','risk_event','risk event','tipo evento'],
+Categoria_Basilea:['categoria_basilea','categoría basilea','categoria basilea','basel category','basel','basel_category','event type','tipo evento basilea'],
+Factor_Riesgo:['factor_riesgo','factor','factor de riesgo','risk_factor','risk factor','factor riesgo'],
+Causa:['causa','cause','root_cause','root cause','causa raíz','causa raiz','rootcause'],
+Consecuencia:['consecuencia','consequence','impact_description','impacto descripción','efecto'],
+Probabilidad_Inherente:['probabilidad_inherente','probabilidad inherente','prob_inherente','prob inh','inherent_probability','inherent probability','inherent_likelihood','inherent likelihood','likelihood_inh','frecuencia_inherente','frecuencia inherente'],
+Probabilidad_Residual:['probabilidad_residual','probabilidad residual','prob_residual','prob res','residual_probability','residual probability','residual_likelihood','residual likelihood','likelihood_res','frecuencia_residual','frecuencia residual'],
+Impacto_Inherente:['impacto_inherente','impacto inherente','imp_inherente','imp inh','inherent_impact','inherent impact','impact_inh'],
+Impacto_Residual:['impacto_residual','impacto residual','imp_residual','imp res','residual_impact','residual impact','impact_res'],
+Impacto_Financiero_Inh:['impacto_financiero_inh','impacto financiero inh','financial_impact_inh','financial impact inherent','impacto_financiero_inherente'],
+Impacto_Financiero_Res:['impacto_financiero_res','impacto financiero res','financial_impact_res','financial impact residual','impacto_financiero_residual','impacto_financiero','financial_impact','financial impact'],
+Impacto_Operativo_Inh:['impacto_operativo_inh','operational_impact_inh','impacto operativo inherente'],
+Impacto_Operativo_Res:['impacto_operativo_res','operational_impact_res','impacto operativo residual','impacto_operativo','operational_impact'],
+Impacto_Regulatorio_Inh:['impacto_regulatorio_inh','regulatory_impact_inh','impacto regulatorio inherente'],
+Impacto_Regulatorio_Res:['impacto_regulatorio_res','regulatory_impact_res','impacto regulatorio residual','impacto_regulatorio','regulatory_impact','compliance_impact'],
+Impacto_Reputacional_Inh:['impacto_reputacional_inh','reputational_impact_inh','impacto reputacional inherente'],
+Impacto_Reputacional_Res:['impacto_reputacional_res','reputational_impact_res','impacto reputacional residual','impacto_reputacional','reputational_impact'],
+Nivel_Riesgo_Inherente:['nivel_riesgo_inherente','nivel riesgo inherente','inherent_score','inherent score','inherent_risk','inherent risk','riesgo inherente','score_inh'],
+Nivel_Riesgo_Residual:['nivel_riesgo_residual','nivel riesgo residual','residual_score','residual score','residual_risk','residual risk','riesgo residual','score_res','risk_rating','risk rating'],
+Apetito_Riesgo:['apetito_riesgo','apetito','risk_appetite','risk appetite','appetite'],
+Tolerancia_Riesgo:['tolerancia_riesgo','tolerancia','risk_tolerance','risk tolerance','tolerance'],
+Estado_Riesgo:['estado_riesgo','estado','status','risk_status','risk status'],
+Control_Clave:['control_clave','control','control clave','key_control','key control','control_name','control_description','control description'],
+Tipo_Control:['tipo_control','tipo control','control_type','control type','tipo de control'],
+Frecuencia_Control:['frecuencia_control','frecuencia control','control_frequency','control frequency','frequency'],
+Efectividad_Control:['efectividad_control','efectividad','control_effectiveness','control effectiveness','effectiveness','efectividad %','effectiveness %','control_rating','control rating'],
+KRI:['kri','kri_name','indicador','indicator','indicador clave','key risk indicator'],
+Valor_KRI:['valor_kri','valor kri','kri_value','kri value','indicator_value'],
+Umbral_Aceptable:['umbral_aceptable','umbral aceptable','threshold_green','green_threshold','aceptable'],
+Umbral_Tolerable:['umbral_tolerable','umbral tolerable','threshold_yellow','yellow_threshold','tolerable'],
+Umbral_Critico:['umbral_critico','umbral crítico','umbral critico','threshold_red','red_threshold','crítico','critico'],
+Perdida_Bruta:['perdida_bruta','pérdida bruta','perdida bruta','gross_loss','gross loss','loss_gross'],
+Perdida_Recuperada:['perdida_recuperada','pérdida recuperada','perdida recuperada','recovered','recovery','recuperación','recuperacion'],
+Perdida_Neta:['perdida_neta','pérdida neta','perdida neta','net_loss','net loss','loss_net','loss_amount','loss amount'],
+Estado_Plan_Accion:['estado_plan_accion','estado plan acción','estado plan accion','action_status','action status','plan_status','plan de acción estado'],
+Responsable:['responsable','owner','risk_owner','risk owner','responsible','accountable','assigned_to','assigned to'],
+Fecha_Compromiso:['fecha_compromiso','fecha compromiso','due_date','due date','target_date','target date','deadline','fecha objetivo'],
+Fecha_Evento:['fecha_evento','fecha evento','event_date','event date','date_of_event','occurrence_date']
+};
+
+function normalizeKey(s){return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[ñ]/g,'n')}
+
+function buildAliasIndex(){
+const idx={};
+Object.entries(FIELD_ALIASES).forEach(([canonical,aliases])=>{
+idx[normalizeKey(canonical)]=canonical;
+aliases.forEach(a=>{idx[normalizeKey(a)]=canonical});
 });
+return idx;
+}
+const ALIAS_INDEX=buildAliasIndex();
 
-['dragover','dragenter'].forEach(ev=>document.getElementById('uploadZone').addEventListener(ev,e=>{e.preventDefault();e.currentTarget.style.borderColor='#555';}));
-['dragleave','drop'].forEach(ev=>document.getElementById('uploadZone').addEventListener(ev,e=>{e.preventDefault();e.currentTarget.style.borderColor='#bbb';}));
-document.getElementById('uploadZone').addEventListener('drop',e=>{
-  const f=e.dataTransfer.files[0]; if(!f)return;
-  Papa.parse(f,{header:true,skipEmptyLines:true,dynamicTyping:true,complete:r=>{ALL=r.data;init();}});
+function mapRCSARow(row){
+const out={};
+Object.entries(row).forEach(([k,v])=>{
+const norm=normalizeKey(k);
+const canonical=ALIAS_INDEX[norm];
+if(canonical) out[canonical]=v;
+else out[k]=v; // mantener campos extra
 });
+// Derivar campos si vienen variantes
+if(out.Probabilidad_Residual==null&&out.Probabilidad_Inherente!=null)out.Probabilidad_Residual=out.Probabilidad_Inherente;
+if(out.Impacto_Financiero_Res==null&&out.Impacto_Residual!=null)out.Impacto_Financiero_Res=out.Impacto_Residual;
+if(out.Impacto_Financiero_Inh==null&&out.Impacto_Inherente!=null)out.Impacto_Financiero_Inh=out.Impacto_Inherente;
+if(out.Impacto_Residual==null&&out.Impacto_Financiero_Res!=null)out.Impacto_Residual=out.Impacto_Financiero_Res;
+if(out.Impacto_Inherente==null&&out.Impacto_Financiero_Inh!=null)out.Impacto_Inherente=out.Impacto_Financiero_Inh;
+// Calcular niveles si faltan
+if(!out.Nivel_Riesgo_Inherente&&out.Probabilidad_Inherente&&out.Impacto_Inherente)out.Nivel_Riesgo_Inherente=(+out.Probabilidad_Inherente)*(+out.Impacto_Inherente);
+if(!out.Nivel_Riesgo_Residual&&out.Probabilidad_Residual&&out.Impacto_Residual)out.Nivel_Riesgo_Residual=(+out.Probabilidad_Residual)*(+out.Impacto_Residual);
+// Fechas
+['Fecha_Registro','Fecha_Compromiso','Fecha_Evento'].forEach(k=>{if(out[k] instanceof Date)out[k]=out[k].toISOString().slice(0,10);else if(out[k])out[k]=String(out[k]).slice(0,10);});
+// Generar ID si falta
+if(!out.ID_Riesgo)out.ID_Riesgo='RCSA-'+Math.random().toString(36).slice(2,8).toUpperCase();
+return out;
+}
 
+function downloadRCSATemplate(){
+const sample=[{
+ID_Riesgo:'RCSA-0001',Fecha_Registro:new Date().toISOString().slice(0,10),Proceso:'Crédito',Subproceso:'Originación',Unidad:'Banca Personas',
+Riesgo_Operacional:'Posibles pérdidas por fraude interno en aprobación de créditos',Evento_Riesgo:'Aprobación irregular',
+Categoria_Basilea:'Fraude Interno',Factor_Riesgo:'Personas',Causa:'Falta de supervisión',Consecuencia:'Pérdida financiera y reputacional',
+Probabilidad_Inherente:4,Impacto_Inherente:4,Nivel_Riesgo_Inherente:16,
+Probabilidad_Residual:2,Impacto_Residual:3,Nivel_Riesgo_Residual:6,
+Impacto_Financiero_Inh:4,Impacto_Financiero_Res:3,
+Impacto_Operativo_Inh:2,Impacto_Operativo_Res:1,
+Impacto_Regulatorio_Inh:3,Impacto_Regulatorio_Res:2,
+Impacto_Reputacional_Inh:4,Impacto_Reputacional_Res:2,
+Apetito_Riesgo:'Bajo',Tolerancia_Riesgo:20000,Estado_Riesgo:'En Tratamiento',
+Control_Clave:'Doble validación con segregación de funciones',Tipo_Control:'Preventivo',Frecuencia_Control:'Continua',Efectividad_Control:75,
+KRI:'% aprobaciones fuera de política',Valor_KRI:12,Umbral_Aceptable:5,Umbral_Tolerable:10,Umbral_Critico:20,
+Perdida_Bruta:0,Perdida_Recuperada:0,Perdida_Neta:0,
+Estado_Plan_Accion:'En Curso',Responsable:'Gerencia de Riesgos',Fecha_Compromiso:'2026-12-31',Fecha_Evento:''
+}];
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sample),'Plantilla_RCSA');
+// Hoja con el diccionario de campos
+const dict=Object.entries(FIELD_ALIASES).map(([k,v])=>({Campo_Canonical:k,Aliases_Aceptados:v.join(' | ')}));
+XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dict),'Diccionario_Campos');
+XLSX.writeFile(wb,'Plantilla_RCSA_Dashboard_v3.xlsx');
+toast('Plantilla RCSA descargada','success');
+}
+
+/* =============== HELPERS =============== */
+function hmLevelPI(p,i){const c=HM_COLORS[p+'-'+i];return c==='bajo'?'Bajo':c==='medio'?'Medio':c==='alto'?'Alto':c==='critico'?'Crítico':'Bajo'}
+function hmClassPI(p,i){return 'tag-'+(HM_COLORS[p+'-'+i]||'bajo')}
+function hmHexPI(p,i){const c=HM_COLORS[p+'-'+i];return c==='bajo'?'#2e7d32':c==='medio'?'#f9a825':c==='alto'?'#ef6c00':'#c62828'}
+function getTiers(t){return (IMPACT_CATEGORIES[t]||IMPACT_CATEGORIES.Financiero).tiers}
+function impactValue(r,type,suffix){
+const direct=+r['Impacto_'+type+'_'+suffix]||0;
+if(direct>0)return direct;
+// Fallback: si no existe el campo específico por categoría, usar Impacto_Residual/Inherente (asumido Financiero por defecto)
+const generic=+r['Impacto_'+(suffix==='Res'?'Residual':'Inherente')]||0;
+if(generic>0)return generic;
+return 0;
+}
+// Normaliza un riesgo: rellena campos faltantes para asegurar cálculos correctos
+function normalizeRecord(r){
+// Si faltan los 4 impactos por categoría, copiarlos desde Impacto_Inherente/Residual (asumido Financiero)
+const impI=+r.Impacto_Inherente||0, impR=+r.Impacto_Residual||0;
+['Financiero','Operativo','Regulatorio','Reputacional'].forEach(cat=>{
+if(!r['Impacto_'+cat+'_Inh']&&impI>0)r['Impacto_'+cat+'_Inh']=impI;
+if(!r['Impacto_'+cat+'_Res']&&impR>0)r['Impacto_'+cat+'_Res']=impR;
+});
+// Si faltan los genéricos pero existe Financiero, copiarlos
+if(!r.Impacto_Inherente&&r.Impacto_Financiero_Inh)r.Impacto_Inherente=+r.Impacto_Financiero_Inh;
+if(!r.Impacto_Residual&&r.Impacto_Financiero_Res)r.Impacto_Residual=+r.Impacto_Financiero_Res;
+// Recalcular niveles
+if(!r.Nivel_Riesgo_Inherente&&r.Probabilidad_Inherente&&r.Impacto_Inherente)r.Nivel_Riesgo_Inherente=(+r.Probabilidad_Inherente)*(+r.Impacto_Inherente);
+if(!r.Nivel_Riesgo_Residual&&r.Probabilidad_Residual&&r.Impacto_Residual)r.Nivel_Riesgo_Residual=(+r.Probabilidad_Residual)*(+r.Impacto_Residual);
+// Si no hay tolerancia, asignar por defecto según apetito
+if(!r.Tolerancia_Riesgo){const a=r.Apetito_Riesgo;r.Tolerancia_Riesgo=a==='Bajo'?10000:a==='Medio'?50000:a==='Alto'?200000:25000;}
+return r;
+}
+function exposure(r,type,suffix){const p=+r['Probabilidad_'+suffix]||0,i=impactValue(r,type,suffix);if(p<1||p>5||i<1||i>5)return 0;return (PROB_PCT[p]/100)*getTiers(type)[i].max}
+function exposureFinanciero(r){return exposure(r,'Financiero','Res')}
+function riskLevel(r,type){type=type||'Financiero';const p=+r.Probabilidad_Residual,i=impactValue(r,type,'Res');return (p>=1&&p<=5&&i>=1&&i<=5)?hmLevelPI(p,i):'Bajo'}
+function riskClass(r,type){type=type||'Financiero';const p=+r.Probabilidad_Residual,i=impactValue(r,type,'Res');return (p>=1&&p<=5&&i>=1&&i<=5)?hmClassPI(p,i):'tag-bajo'}
+function riskColor(r,type){type=type||'Financiero';const p=+r.Probabilidad_Residual,i=impactValue(r,type,'Res');return (p>=1&&p<=5&&i>=1&&i<=5)?hmHexPI(p,i):'#2e7d32'}
+function fueraApetito(r){const tol=+r.Tolerancia_Riesgo||0;const exp=exposureFinanciero(r);return tol>0?exp>tol:riskLevel(r,'Financiero')==='Crítico'}
+function fmt(n){if(n==null||n==='')return '–';n=+n;if(isNaN(n))return '–';return n.toLocaleString('es-PE',{maximumFractionDigits:2})}
+function fmtMoney(n){if(!n)return '$0';n=+n;if(isNaN(n))return '$0';if(Math.abs(n)>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return '$'+(n/1e3).toFixed(1)+'K';return '$'+Math.round(n)}
+function fmtExposure(v,type){if(type==='Financiero')return fmtMoney(v);if(type==='Operativo')return v<24?v.toFixed(1)+'h':(v/24).toFixed(1)+'d';return 'Nivel '+v.toFixed(1)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function randDate(a,b){return new Date(a.getTime()+Math.random()*(b.getTime()-a.getTime())).toISOString().slice(0,10)}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+function v(id){return document.getElementById(id).value}
+function uniq(a){return [...new Set(a.filter(Boolean))].sort()}
+
+/* =============== INIT =============== */
 function init(){
-  document.getElementById('uploadZone').style.display='none';
-  document.getElementById('main').style.display='block';
-  document.getElementById('hdrSub').textContent=`${ALL.length} registros cargados`;
-  populateFilters();
-  applyFilters();
-  buildCharts();
+loadData();
+if(!DATA.length)generateDemo();
+// Normalizar todos los registros: poblar campos por categoría desde genéricos, tolerancia, niveles
+let normalized=0;
+DATA.forEach(r=>{
+const before=JSON.stringify({a:r.Impacto_Financiero_Res,b:r.Tolerancia_Riesgo});
+normalizeRecord(r);
+if(before!==JSON.stringify({a:r.Impacto_Financiero_Res,b:r.Tolerancia_Riesgo}))normalized++;
+});
+// Auto-completar histórico trimestral
+let added=0;
+DATA.forEach(r=>{if(!r.Historial||!r.Historial.length){r.Historial=buildSyntheticHistorial(r);added++;}});
+if(normalized>0||added>0){saveData();setTimeout(()=>toast(`Data normalizada: ${normalized} riesgos completados${added?' · histórico generado para '+added:''}`,'success'),500);}
+bindEvents();
+applyFilters();
+showPage('executive');
 }
 
-function populateFilters(){
-  const fill=(id,key)=>{
-    const sel=document.getElementById(id);
-    const vals=[...new Set(ALL.map(r=>r[key]).filter(Boolean))].sort();
-    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});
-  };
-  fill('fProceso','Proceso');fill('fClasInherente','Clasificacion_Inherente');
-  fill('fClasResidual','Clasificacion_Residual');fill('fEstado','Estado');fill('fResponsable','Responsable');
-  ['fProceso','fClasInherente','fClasResidual','fEstado','fResponsable','fSearch'].forEach(id=>{
-    document.getElementById(id).addEventListener('change',()=>{page=1;applyFilters();});
-    if(id==='fSearch')document.getElementById(id).addEventListener('input',()=>{page=1;applyFilters();});
-  });
+function bindEvents(){
+document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>showPage(n.dataset.page));
+['fProceso','fUnidad','fFactor','fCausa','fBasel','fImpact','fNivel','fEstado'].forEach(id=>document.getElementById(id).onchange=applyFilters);
+document.getElementById('fFactor').addEventListener('change',updateCausaFilterOptions);
+document.getElementById('fSearch').oninput=debounce(applyFilters,200);
+document.getElementById('btnClearFilters').onclick=()=>{['fProceso','fUnidad','fFactor','fCausa','fBasel','fImpact','fNivel','fEstado','fSearch'].forEach(id=>document.getElementById(id).value='');applyFilters();};
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=handleImport;
+document.getElementById('btnExport').onclick=exportExcel;
+document.getElementById('btnNewRisk').onclick=()=>openRiskModal();
+document.getElementById('btnSaveRisk').onclick=saveRisk;
+document.getElementById('btnReport').onclick=()=>showPage('report');
+document.getElementById('btnExport2').onclick=exportExcel;
+document.getElementById('btnLoadDemo').onclick=()=>{if(confirm('¿Reemplazar datos con dataset v3.0?')){DATA=[];generateDemo();applyFilters();toast('Demo v3.0 cargado','success');}};
+document.getElementById('btnReset').onclick=()=>{if(confirm('¿Eliminar TODOS los datos?')){DATA=[];saveData();applyFilters();toast('Datos eliminados','success');}};
+document.getElementById('btnRcsaTpl').onclick=downloadRCSATemplate;
+document.getElementById('btnRegenHist').onclick=()=>{if(confirm('¿Generar histórico trimestral 2024-Q1 a 2026-Q2 para los '+DATA.length+' riesgos cargados? Esto reemplazará cualquier histórico existente.')){regenerateAllHistorial();}};
+document.getElementById('btnPreviewReport').onclick=previewReport;
+document.getElementById('btnDownloadReport').onclick=downloadReport;
+document.getElementById('hmModeRes').onclick=()=>{hmMode='res';renderHeatmap();highlightHmMode();};
+document.getElementById('hmModeInh').onclick=()=>{hmMode='inh';renderHeatmap();highlightHmMode();};
+document.getElementById('phmModeRes').onclick=()=>{phmMode='res';renderProcessHeatmap();highlightPhmMode();};
+document.getElementById('phmModeInh').onclick=()=>{phmMode='inh';renderProcessHeatmap();highlightPhmMode();};
+document.querySelectorAll('#hmTabs .tab-pill').forEach(b=>b.onclick=()=>{impactType=b.dataset.imp;document.querySelectorAll('#hmTabs .tab-pill').forEach(x=>x.classList.toggle('active',x===b));renderHeatmap();});
+document.querySelectorAll('#phmTabs .tab-pill').forEach(b=>b.onclick=()=>{pImpactType=b.dataset.imp;document.querySelectorAll('#phmTabs .tab-pill').forEach(x=>x.classList.toggle('active',x===b));renderProcessHeatmap();renderProcRanking();});
+highlightHmMode();highlightPhmMode();
+document.querySelectorAll('th.sortable').forEach(th=>th.onclick=()=>{const k=th.dataset.sort;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}renderMatrixTable();});
+}
+function highlightHmMode(){document.getElementById('hmModeRes').className='btn btn-sm '+(hmMode==='res'?'btn-primary':'');document.getElementById('hmModeInh').className='btn btn-sm '+(hmMode==='inh'?'btn-primary':'');}
+function highlightPhmMode(){document.getElementById('phmModeRes').className='btn btn-sm '+(phmMode==='res'?'btn-primary':'');document.getElementById('phmModeInh').className='btn btn-sm '+(phmMode==='inh'?'btn-primary':'');}
+
+function loadData(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)DATA=JSON.parse(raw)}catch(e){DATA=[]}}
+function saveData(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}catch(e){toast('Error al guardar','error')}}
+
+/* =============== DEMO DATA =============== */
+function generateDemo(){
+const today=new Date('2026-05-10');const records=[];
+for(let i=1;i<=100;i++){
+const proc=pick(PROC_LIST),factor=pick(FACTORS),basel=pick(BASEL_CATS);
+const causa=pick(CAUSES_BY_FACTOR[factor]);
+const probI=randInt(2,5),efect=randInt(35,95);
+const probR=Math.max(1,probI-(efect>70?2:efect>50?1:0));
+// 4 impactos (Inh y Res)
+const ifin=randInt(2,5), ofin=Math.max(1,ifin-(efect>70?1:0));
+const iope=randInt(1,5), oope=Math.max(1,iope-(efect>70?1:0));
+const ireg=randInt(1,5), oreg=Math.max(1,ireg-(efect>70?1:0));
+const irep=randInt(1,5), orep=Math.max(1,irep-(efect>70?1:0));
+const apetito=pick(['Bajo','Medio','Alto']),tol=apetito==='Bajo'?5000:apetito==='Medio'?25000:100000;
+const fechaReg=randDate(new Date('2024-01-01'),today);
+const fechaEv=Math.random()<0.6?randDate(new Date('2025-06-01'),today):'';
+const fechaCom=randDate(today,new Date('2026-12-31'));
+const hasLoss=fechaEv&&Math.random()<0.7;
+const bruta=hasLoss?Math.round(Math.exp(Math.random()*7+5)):0;
+const recup=hasLoss?Math.round(bruta*Math.random()*0.4):0;
+const historial=[];
+let curProbI=Math.max(1,Math.min(5,probI+randInt(0,2)));
+let curIfin=Math.max(1,Math.min(5,ifin+randInt(0,1)));
+let curEfect=Math.max(20,Math.min(95,efect-randInt(15,30)));
+QUARTERS.forEach((q,idx)=>{
+if(idx<QUARTERS.length-1){
+if(Math.random()<0.35)curProbI=Math.max(1,Math.min(5,curProbI+(curProbI>probI?-1:curProbI<probI?1:randInt(-1,1))));
+if(Math.random()<0.3)curIfin=Math.max(1,Math.min(5,curIfin+(curIfin>ifin?-1:0)));
+if(Math.random()<0.6)curEfect=Math.max(20,Math.min(95,curEfect+randInt(0,8)));
+} else {curProbI=probI;curIfin=ifin;curEfect=efect;}
+const cProbR=Math.max(1,curProbI-(curEfect>70?2:curEfect>50?1:0));
+const cIfinR=Math.max(1,curIfin-(curEfect>70?1:0));
+historial.push({Trimestre:q,ProbI:curProbI,ImpI:curIfin,ScoreI:curProbI*curIfin,ProbR:cProbR,ImpR:cIfinR,ScoreR:cProbR*cIfinR,Efectividad:curEfect});
+});
+records.push({
+ID_Riesgo:'RO-'+String(i).padStart(4,'0'),Fecha_Registro:fechaReg,Proceso:proc,Subproceso:proc+' Sub '+randInt(1,3),Unidad:pick(UNI_LIST),
+Riesgo_Operacional:pick(RISK_NAMES),Categoria_Basilea:basel,Factor_Riesgo:factor,Causa:causa,Consecuencia:pick(['Pérdida financiera','Sanción regulatoria','Pérdida reputacional','Interrupción operativa']),
+Probabilidad_Inherente:probI,Probabilidad_Residual:probR,
+Impacto_Financiero_Inh:ifin,Impacto_Financiero_Res:ofin,
+Impacto_Operativo_Inh:iope,Impacto_Operativo_Res:oope,
+Impacto_Regulatorio_Inh:ireg,Impacto_Regulatorio_Res:oreg,
+Impacto_Reputacional_Inh:irep,Impacto_Reputacional_Res:orep,
+// Compatibilidad heredada con Impacto_Inherente/Residual = Financiero
+Impacto_Inherente:ifin,Impacto_Residual:ofin,Nivel_Riesgo_Inherente:probI*ifin,Nivel_Riesgo_Residual:probR*ofin,
+Apetito_Riesgo:apetito,Tolerancia_Riesgo:tol,
+Estado_Riesgo:pick(['Activo','Activo','Activo','En Tratamiento','Mitigado','Cerrado']),
+Control_Clave:pick(CONTROLS),Tipo_Control:pick(['Preventivo','Detectivo','Correctivo']),
+Frecuencia_Control:pick(['Continua','Diaria','Semanal','Mensual','Trimestral']),Efectividad_Control:efect,
+KRI:pick(KRI_NAMES),Valor_KRI:Math.round(Math.random()*100*100)/100,Umbral_Aceptable:30,Umbral_Tolerable:60,Umbral_Critico:85,
+Perdida_Bruta:bruta,Perdida_Recuperada:recup,Perdida_Neta:bruta-recup,
+Estado_Plan_Accion:pick(['No Iniciado','En Curso','En Curso','Completado','Vencido']),
+Responsable:pick(RESP_LIST),Fecha_Compromiso:fechaCom,Fecha_Evento:fechaEv||'',
+Historial:historial
+});
+}
+DATA=records;saveData();
 }
 
+/* =============== FILTERS =============== */
 function applyFilters(){
-  const fp=document.getElementById('fProceso').value;
-  const fi=document.getElementById('fClasInherente').value;
-  const fr=document.getElementById('fClasResidual').value;
-  const fe=document.getElementById('fEstado').value;
-  const fre=document.getElementById('fResponsable').value;
-  const fs=document.getElementById('fSearch').value.toLowerCase();
-  filtered=ALL.filter(r=>{
-    return (!fp||r.Proceso===fp)&&(!fi||r.Clasificacion_Inherente===fi)&&(!fr||r.Clasificacion_Residual===fr)&&
-           (!fe||r.Estado===fe)&&(!fre||r.Responsable===fre)&&
-           (!fs||(r.Evento_Riesgo||'').toLowerCase().includes(fs)||(r.Descripcion_Riesgo||'').toLowerCase().includes(fs));
-  });
-  if(sortCol){filtered.sort((a,b)=>{const x=a[sortCol]||'',y=b[sortCol]||'';return sortAsc?(x>y?1:-1):(x<y?1:-1);});}
-  renderKPIs(); renderMatrices(); renderTable();
+populateFilters();
+const fp=v('fProceso'),fu=v('fUnidad'),ff=v('fFactor'),fc=v('fCausa'),fb=v('fBasel'),fi=v('fImpact'),fn=v('fNivel'),fe=v('fEstado'),fs=v('fSearch').toLowerCase();
+FILTERED=DATA.filter(r=>{
+if(fp&&r.Proceso!==fp)return false;
+if(fu&&r.Unidad!==fu)return false;
+if(ff&&r.Factor_Riesgo!==ff)return false;
+if(fc&&r.Causa!==fc)return false;
+if(fb&&r.Categoria_Basilea!==fb)return false;
+if(fi&&impactValue(r,fi,'Res')<3)return false; // si filtra por impacto, mostrar solo riesgos con impacto medio+ en esa cat
+if(fn&&riskLevel(r,fi||'Financiero')!==fn)return false;
+if(fe&&r.Estado_Riesgo!==fe)return false;
+if(fs){const blob=(r.ID_Riesgo+r.Riesgo_Operacional+r.Proceso+(r.Causa||'')+(r.Responsable||'')).toLowerCase();if(!blob.includes(fs))return false;}
+return true;
+});
+renderAll();
+}
+function populateFilters(){
+fillSelect('fProceso',uniq(DATA.map(r=>r.Proceso)));
+fillSelect('fUnidad',uniq(DATA.map(r=>r.Unidad)));
+fillSelect('fFactor',FACTORS);
+fillSelect('fBasel',uniq(DATA.map(r=>r.Categoria_Basilea)));
+updateCausaFilterOptions();
+fillDatalist('dlProceso',uniq(DATA.map(r=>r.Proceso)).concat(PROC_LIST));
+fillDatalist('dlUnidad',uniq(DATA.map(r=>r.Unidad)).concat(UNI_LIST));
+fillDatalist('dlResp',uniq(DATA.map(r=>r.Responsable)).concat(RESP_LIST));
+}
+function updateCausaFilterOptions(){
+const sel=document.getElementById('fCausa');const cur=sel.value;const factor=document.getElementById('fFactor').value;
+let causes=[];
+if(factor&&CAUSES_BY_FACTOR[factor])causes=CAUSES_BY_FACTOR[factor];
+else causes=[].concat(...Object.values(CAUSES_BY_FACTOR));
+sel.innerHTML='<option value="">Todas</option>'+causes.map(c=>`<option ${cur===c?'selected':''}>${esc(c)}</option>`).join('');
+}
+function updateCausaOptions(){
+const sel=document.getElementById('formCausa');const factor=document.getElementById('formFactor').value;
+const causes=CAUSES_BY_FACTOR[factor]||[];
+sel.innerHTML='<option></option>'+causes.map(c=>`<option>${esc(c)}</option>`).join('');
+}
+function fillSelect(id,items){const sel=document.getElementById(id);const cur=sel.value;const def=sel.querySelector('option[value=""]').outerHTML;sel.innerHTML=def+items.map(i=>`<option value="${esc(i)}" ${cur===i?'selected':''}>${esc(i)}</option>`).join('')}
+function fillDatalist(id,items){document.getElementById(id).innerHTML=items.filter((v,i,a)=>a.indexOf(v)===i).map(i=>`<option value="${esc(i)}">`).join('')}
+
+/* =============== RENDER =============== */
+function renderAll(){renderKpis();renderHeatmap();renderProcessHeatmap();renderTopCriticos();renderProcRanking();renderImpactSummary();renderCriticalPage();renderQuarterlyPage();renderLossesPage();renderKrisPage();renderControlsPage();renderFactorsPage();renderActionsPage();renderAlertsPage();renderMatrixTable();renderBadges();}
+function renderBadges(){setBadge('badgeCriticos',FILTERED.filter(r=>riskLevel(r,'Financiero')==='Crítico').length);setBadge('badgeKris',FILTERED.filter(r=>kriStatus(r)==='Crítico').length);setBadge('badgeAlerts',countAlerts());}
+function setBadge(id,n){const b=document.getElementById(id);if(n>0){b.textContent=n;b.classList.add('show')}else b.classList.remove('show')}
+
+function renderKpis(){
+const F=FILTERED;
+document.getElementById('kpiTotal').textContent=F.length;
+document.getElementById('kpiCriticos').textContent=F.filter(r=>riskLevel(r,'Financiero')==='Crítico').length;
+document.getElementById('kpiFuera').textContent=F.filter(fueraApetito).length;
+document.getElementById('kpiPerdida').textContent=fmtMoney(F.reduce((s,r)=>s+(+r.Perdida_Neta||0),0));
+document.getElementById('kpiExpFin').textContent=fmtMoney(F.reduce((s,r)=>s+exposure(r,'Financiero','Res'),0));
+const ctrl=F.filter(r=>r.Efectividad_Control);const efOk=ctrl.filter(r=>+r.Efectividad_Control>=70).length;
+document.getElementById('kpiControles').textContent=ctrl.length?Math.round(efOk*100/ctrl.length)+'%':'–';
+
+// Chart por categoría de impacto (apilado)
+const cats=['Financiero','Operativo','Regulatorio','Reputacional'];
+const levels=['Bajo','Medio','Alto','Crítico'];
+const datasets=levels.map((lv,idx)=>({label:lv,data:cats.map(c=>F.filter(r=>riskLevel(r,c)===lv).length),backgroundColor:['#2e7d32','#f9a825','#ef6c00','#c62828'][idx],stack:'1'}));
+drawChart('chartImpactCats','bar',{labels:cats,datasets},{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}});
+
+const est=groupBy(F,'Estado_Riesgo');
+drawChart('chartEstado','doughnut',{labels:Object.keys(est),datasets:[{data:Object.values(est),backgroundColor:PALETTE,borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:11}}}},cutout:'60%'});
+
+const procExp=aggregate(F,'Proceso',r=>exposure(r,'Financiero','Res'));
+const top=Object.entries(procExp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+drawChart('chartProcesos','bar',{labels:top.map(t=>t[0]),datasets:[{label:'Exposición $',data:top.map(t=>t[1]),backgroundColor:'#1e88e5'}]},{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:(ctx)=>'Exp: '+fmtMoney(ctx.parsed.x)}}}});
+
+const causas=groupBy(F,'Causa');
+const topC=Object.entries(causas).sort((a,b)=>b[1]-a[1]).slice(0,10);
+drawChart('chartCausas','bar',{labels:topC.map(t=>t[0]),datasets:[{label:'# Riesgos',data:topC.map(t=>t[1]),backgroundColor:'#26a69a'}]},{indexAxis:'y',plugins:{legend:{display:false}}});
+
+const months=lastNMonths(12);const byMonth=months.map(m=>({m,b:0,r:0,n:0}));
+F.forEach(r=>{if(!r.Fecha_Evento)return;const ym=String(r.Fecha_Evento).slice(0,7);const row=byMonth.find(b=>b.m===ym);if(row){row.b+=+r.Perdida_Bruta||0;row.r+=+r.Perdida_Recuperada||0;row.n+=+r.Perdida_Neta||0}});
+drawChart('chartLossEvo','line',{labels:months,datasets:[{label:'Bruta',data:byMonth.map(b=>b.b),borderColor:'#c62828',backgroundColor:'#c6282822',tension:.35,fill:true},{label:'Neta',data:byMonth.map(b=>b.n),borderColor:'#1e88e5',borderWidth:2.5,tension:.35}]},{plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}});
+
+const factCounts=groupBy(F,'Factor_Riesgo');
+drawChart('chartFactor','doughnut',{labels:Object.keys(factCounts),datasets:[{data:Object.values(factCounts),backgroundColor:['#1e88e5','#26a69a','#ef6c00','#7b1fa2'],borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8}}},cutout:'55%'});
+}
+function groupBy(arr,key){const o={};arr.forEach(r=>{const k=r[key]||'(s/d)';o[k]=(o[k]||0)+1});return o}
+function aggregate(arr,key,fn){const o={};arr.forEach(r=>{const k=r[key]||'(s/d)';o[k]=(o[k]||0)+fn(r)});return o}
+function lastNMonths(n){const arr=[],d=new Date('2026-05-10');for(let i=n-1;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);arr.push(x.toISOString().slice(0,7))}return arr}
+function drawChart(id,type,data,opts){const el=document.getElementById(id);if(!el)return;if(CHARTS[id])CHARTS[id].destroy();CHARTS[id]=new Chart(el,{type,data,options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}}},opts||{})});}
+
+/* ----- HEATMAP RIESGOS ----- */
+function renderHeatmap(){
+const tiers=getTiers(impactType);
+const grid=document.getElementById('heatmapGrid');const buckets={};
+for(let p=1;p<=5;p++)for(let i=1;i<=5;i++)buckets[p+'-'+i]=[];
+FILTERED.forEach(r=>{
+const p=+r['Probabilidad_'+(hmMode==='res'?'Residual':'Inherente')];
+const i=impactValue(r,impactType,hmMode==='res'?'Res':'Inh');
+if(p>=1&&p<=5&&i>=1&&i<=5)buckets[p+'-'+i].push(r);
+});
+let h='<table class="heatmap-table"><tr><th class="heatmap-header" style="width:140px">FRECUENCIA</th>';
+for(let i=1;i<=5;i++)h+=`<th class="heatmap-header">${tiers[i].label}</th>`;
+h+='</tr><tr><th class="heatmap-header-sub">Probabilidad</th>';
+for(let i=1;i<=5;i++)h+=`<th class="heatmap-header-sub">${tiers[i].short}</th>`;
+h+='</tr>';
+for(let imp=5;imp>=1;imp--){
+h+=`<tr><th class="heatmap-yhdr">${PROB_LABELS[imp]}<span class="heatmap-yhdr-pct">${PROB_PCT_LABELS[imp]}</span></th>`;
+for(let pro=1;pro<=5;pro++){
+const lvlName=hmLevelPI(imp,pro);const lvl=lvlName==='Crítico'?'critico':lvlName.toLowerCase();
+const items=buckets[pro+'-'+imp];
+const exp=(PROB_PCT[imp]/100)*tiers[pro].max;
+h+=`<td class="heatmap-cell hm-${lvl}" onclick="showHmDrill(${pro},${imp})" title="${PROB_LABELS[imp]} × ${tiers[pro].label} · Exp. máx ${fmtExposure(exp,impactType)} · ${items.length} riesgo(s)"><div class="heatmap-cell-inner"><div class="count">${items.length}</div><div class="lvl">${fmtExposure(exp,impactType)}</div></div></td>`;
+}
+h+='</tr>';
+}
+h+='</table>';
+grid.innerHTML=h;
 }
 
-function resetFilters(){
-  ['fProceso','fClasInherente','fClasResidual','fEstado','fResponsable'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('fSearch').value='';
-  page=1; applyFilters();
+function showHmDrill(pro,imp){
+const tiers=getTiers(impactType);
+const items=FILTERED.filter(r=>{
+const p=+r['Probabilidad_'+(hmMode==='res'?'Residual':'Inherente')];
+const i=impactValue(r,impactType,hmMode==='res'?'Res':'Inh');
+return p===imp&&i===pro;
+});
+const exp=(PROB_PCT[imp]/100)*tiers[pro].max;
+document.getElementById('hmDrillTitle').textContent=`${PROB_LABELS[imp]} × ${tiers[pro].label} · ${hmLevelPI(imp,pro)}`;
+document.getElementById('hmDrillSub').textContent=`Categoría: ${impactType} · ${items.length} riesgo(s) · Exposición máxima ${fmtExposure(exp,impactType)}`;
+const tb=document.querySelector('#hmDrillTable tbody');
+tb.innerHTML=items.length?items.map(r=>`<tr><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Proceso)}</td><td>${esc(r.Factor_Riesgo)}</td><td>${esc(r.Causa)}</td><td>${esc(r.Estado_Riesgo)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Sin riesgos</td></tr>';
+document.getElementById('hmDrillPanel').classList.add('open');
+document.getElementById('hmDrillPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function sortBy(col){sortCol=col;sortAsc=sortCol===col?!sortAsc:true;applyFilters();}
-
-function renderKPIs(){
-  const total=filtered.length;
-  const crit=filtered.filter(r=>zClass(r.Clasificacion_Residual)==='C').length;
-  const alto=filtered.filter(r=>zClass(r.Clasificacion_Residual)==='A').length;
-  const avgEfic=total?Math.round(filtered.reduce((s,r)=>s+(+r.Eficacia_Control_Porc||0),0)/total):0;
-  const avgRed=total?+(filtered.reduce((s,r)=>s+(((r.Nivel_Inherente||0)-(r.Nivel_Residual||0))/(r.Nivel_Inherente||1)),0)/total*100).toFixed(1):0;
-  document.getElementById('kpis').innerHTML=`
-    <div class="kpi"><div class="val">${total}</div><div class="lbl">Total riesgos</div></div>
-    <div class="kpi crit"><div class="val">${crit}</div><div class="lbl">Residual crítico</div></div>
-    <div class="kpi high"><div class="val">${alto}</div><div class="lbl">Residual alto</div></div>
-    <div class="kpi med"><div class="val">${avgEfic}%</div><div class="lbl">Eficacia promedio ctrl</div></div>
-    <div class="kpi low"><div class="val">${avgRed}%</div><div class="lbl">Reducción promedio</div></div>`;
+function renderTopCriticos(){
+const top=[...FILTERED].sort((a,b)=>exposure(b,'Financiero','Res')-exposure(a,'Financiero','Res')).slice(0,10);
+document.getElementById('topCriticos').innerHTML=top.length?top.map((r,i)=>`<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center"><div style="width:24px;height:24px;background:${riskColor(r,'Financiero')};color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${i+1}</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.Riesgo_Operacional)}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px">${esc(r.ID_Riesgo)} · ${esc(r.Proceso)} · ${esc(r.Causa||'')}</div></div><span class="tag ${riskClass(r,'Financiero')}">${fmtMoney(exposure(r,'Financiero','Res'))}</span></div>`).join(''):'<div class="empty">Sin riesgos</div>';
 }
 
-function renderMatrices(){
-  buildMatrix('matInherente',filtered,'Probabilidad_Inherente','Impacto_Inherente','Clasificacion_Inherente','Nivel_Inherente');
-  buildMatrix('matResidual',filtered,'Probabilidad_Inherente','Impacto_Inherente','Clasificacion_Residual','Nivel_Residual',true);
+function renderImpactSummary(){
+const cats=['Financiero','Operativo','Regulatorio','Reputacional'];
+const html=cats.map(c=>{
+const total=FILTERED.reduce((s,r)=>s+exposure(r,c,'Res'),0);
+const crit=FILTERED.filter(r=>riskLevel(r,c)==='Crítico').length;
+const alto=FILTERED.filter(r=>riskLevel(r,c)==='Alto').length;
+return `<div style="padding:11px 0;border-bottom:1px solid var(--border)">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:12px;font-weight:600;color:var(--navy)">${c}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px">${crit} crítico(s) · ${alto} alto(s)</div></div>
+<div style="text-align:right"><div style="font-size:13px;font-weight:700;color:var(--navy)">${fmtExposure(total,c)}</div><div style="font-size:9px;color:var(--muted)">${c==='Financiero'?'EXPOSICIÓN':'NIVEL'}</div></div>
+</div></div>`;
+}).join('');
+document.getElementById('impactSummary').innerHTML=html;
 }
 
-function buildMatrix(id,data,pKey,iKey,clsKey,lvlKey,residual=false){
-  const g=document.getElementById(id); g.innerHTML='';
-  const cell=(h,cls='',extra={})=>{
-    const d=document.createElement('div');
-    d.className='mcell '+cls;
-    Object.assign(d.style,extra);
-    d.innerHTML=h; return d;
-  };
-  g.appendChild(cell('','lbl'));
-  ['Ins (1)','Men (2)','Mod (3)','May (4)','Cat (5)'].forEach(l=>g.appendChild(cell(l,'lbl',{fontSize:'9px'})));
-  for(let p=5;p>=1;p--){
-    g.appendChild(cell(pP[p-1].slice(0,4)+' ('+p+')','lbl ylbl'));
-    for(let i=1;i<=5;i++){
-      let evts;
-      if(residual){
-        evts=data.filter(r=>{
-          const ni=+(r[pKey]||0), ii=+(r[iKey]||0);
-          const score=+(r[lvlKey]||0);
-          const rp=Math.round(score/Math.max(ii,1)), ri=ii;
-          return Math.abs(rp-p)<=1&&ri===i;
-        });
-        evts=data.filter(r=>{
-          const nr=+(r[lvlKey]||0);
-          const z=zClass(r[clsKey]);
-          const pi_score=p*i;
-          return Math.abs(pi_score-nr)<=3&&zClass(pi_score)===z;
-        });
-        evts=data.filter(r=>+(r.Probabilidad_Inherente||0)===p&&+(r[iKey]||0)===i);
-      } else {
-        evts=data.filter(r=>+(r[pKey]||0)===p&&+(r[iKey]||0)===i);
-      }
-      const z=zClass(p*i);
-      const d=document.createElement('div');
-      d.className='mcell z-'+z+(evts.length?' has':'');
-      d.title=`P:${p} × I:${i} = ${p*i} | ${zLabel[z]}${evts.length?' | '+evts.length+' riesgo(s)':''}`;
-      if(evts.length){
-        const w=document.createElement('div');w.className='dot-wrap';
-        evts.slice(0,9).forEach(()=>{const dt=document.createElement('span');dt.className='dot';w.appendChild(dt);});
-        if(evts.length>9){const m=document.createElement('span');m.style='font-size:9px;font-weight:500';m.textContent='+';w.appendChild(m);}
-        d.appendChild(w);
-        d.addEventListener('click',()=>showCellModal(p,i,evts));
-      } else {
-        d.textContent=p*i;
-      }
-      g.appendChild(d);
-    }
-  }
+/* ----- HEATMAP POR PROCESO ----- */
+function aggregateProcByType(type){
+const m={};
+FILTERED.forEach(r=>{
+const p=r.Proceso||'(s/d)';
+if(!m[p])m[p]={proc:p,n:0,sumProbR:0,sumImpR:0,sumProbI:0,sumImpI:0,critico:0,perdida:0,exposicion:0,exposicionInh:0,sumEfect:0};
+m[p].n++;
+m[p].sumProbR+=+r.Probabilidad_Residual||0;
+m[p].sumProbI+=+r.Probabilidad_Inherente||0;
+m[p].sumImpR+=impactValue(r,type,'Res');
+m[p].sumImpI+=impactValue(r,type,'Inh');
+m[p].sumEfect+=+r.Efectividad_Control||0;
+m[p].exposicion+=exposure(r,type,'Res');
+m[p].exposicionInh+=exposure(r,type,'Inh');
+if(riskLevel(r,type)==='Crítico')m[p].critico++;
+m[p].perdida+=+r.Perdida_Neta||0;
+});
+return Object.values(m).map(p=>({
+...p,
+avgProbR:Math.max(1,Math.round(p.sumProbR/p.n)),
+avgImpR:Math.max(1,Math.round(p.sumImpR/p.n)),
+avgProbI:Math.max(1,Math.round(p.sumProbI/p.n)),
+avgImpI:Math.max(1,Math.round(p.sumImpI/p.n)),
+avgEfect:p.sumEfect/p.n,
+mitigacion:p.exposicionInh>0?(p.exposicionInh-p.exposicion)*100/p.exposicionInh:0
+}));
 }
 
-function showCellModal(p,i,evts){
-  document.getElementById('modalWrap').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()">
-    <div class="modal">
-      <h3>P:${p} × I:${i} = ${p*i} — ${evts.length} riesgo(s)</h3>
-      <div style="max-height:55vh;overflow-y:auto">
-      ${evts.map(e=>`<div style="padding:8px 0;border-bottom:0.5px solid #f0f0ee">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span style="font-size:12px;font-weight:500">${e.Evento_Riesgo||'-'}</span>
-          <span class="badge ${zBadge[zClass(e.Clasificacion_Residual)]}">${e.Clasificacion_Residual||'-'}</span>
-        </div>
-        <div style="font-size:11px;color:#888;margin-top:2px">${e.Proceso||''} · ${e.Subproceso||''}</div>
-        <div style="font-size:11px;color:#555;margin-top:3px">${e.Control_Clave||''}</div>
-      </div>`).join('')}
-      </div>
-      <div class="modal-foot"><button class="btn-close" onclick="closeModal()">Cerrar</button></div>
-    </div>
-  </div>`;
+function renderProcessHeatmap(){
+const tiers=getTiers(pImpactType);
+const grid=document.getElementById('procHeatmapGrid');if(!grid)return;
+const procs=aggregateProcByType(pImpactType);
+const buckets={};
+for(let p=1;p<=5;p++)for(let i=1;i<=5;i++)buckets[p+'-'+i]=[];
+procs.forEach(p=>{
+const probAvg=phmMode==='res'?p.avgProbR:p.avgProbI;
+const impAvg=phmMode==='res'?p.avgImpR:p.avgImpI;
+if(probAvg>=1&&probAvg<=5&&impAvg>=1&&impAvg<=5) buckets[impAvg+'-'+probAvg].push(p);
+});
+let h='<table class="heatmap-table"><tr><th class="heatmap-header" style="width:140px">FRECUENCIA</th>';
+for(let i=1;i<=5;i++)h+=`<th class="heatmap-header">${tiers[i].label}</th>`;
+h+='</tr><tr><th class="heatmap-header-sub">Probabilidad</th>';
+for(let i=1;i<=5;i++)h+=`<th class="heatmap-header-sub">${tiers[i].short}</th>`;
+h+='</tr>';
+for(let imp=5;imp>=1;imp--){
+h+=`<tr><th class="heatmap-yhdr">${PROB_LABELS[imp]}<span class="heatmap-yhdr-pct">${PROB_PCT_LABELS[imp]}</span></th>`;
+for(let pro=1;pro<=5;pro++){
+const lvlName=hmLevelPI(imp,pro);const lvl=lvlName==='Crítico'?'critico':lvlName.toLowerCase();
+const procsHere=buckets[pro+'-'+imp]||[];
+const exp=(PROB_PCT[imp]/100)*tiers[pro].max;
+const procList=procsHere.slice(0,3).map(p=>`<span class="proc-name">• ${esc(p.proc.length>22?p.proc.slice(0,20)+'…':p.proc)}</span>`).join('');
+const more=procsHere.length>3?`<span class="proc-name" style="opacity:.7;font-style:italic">+${procsHere.length-3} más</span>`:'';
+h+=`<td class="heatmap-cell heatmap-cell-proc hm-${lvl}" onclick="showProcDrill(${pro},${imp})" title="${procsHere.length} proceso(s) · Exp. ${fmtExposure(exp,pImpactType)}"><div class="heatmap-cell-inner" style="align-items:flex-start;text-align:left;padding:6px 8px"><div style="display:flex;justify-content:space-between;width:100%"><span class="count">${procsHere.length}</span><span class="lvl">${fmtExposure(exp,pImpactType)}</span></div>${procList}${more}</div></td>`;
+}
+h+='</tr>';
+}
+h+='</table>';
+grid.innerHTML=h;
 }
 
-function renderTable(){
-  const start=(page-1)*PER_PAGE, end=start+PER_PAGE;
-  const rows=filtered.slice(start,end);
-  document.getElementById('tbody').innerHTML=rows.map(r=>{
-    const z=zClass(r.Clasificacion_Residual);
-    const ef=Math.min(+(r.Eficacia_Control_Porc||0),100);
-    const pgCls=ef>=70?'pg-low':ef>=40?'pg-med':'pg-high';
-    return `<tr onclick="showDetail(${ALL.indexOf(r)})" style="cursor:pointer">
-      <td style="font-size:11px;color:#aaa">${r.ID_Riesgo||'-'}</td>
-      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.Proceso||'-'}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.Evento_Riesgo||''}">${r.Evento_Riesgo||'-'}</td>
-      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#888">${r.Factor_Riesgo||'-'}</td>
-      <td><span class="badge ${zBadge[zClass(r.Clasificacion_Inherente)]}">${r.Clasificacion_Inherente||'-'}</span></td>
-      <td>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="progress"><div class="progress-fill ${pgCls}" style="width:${ef}%"></div></div>
-          <span style="font-size:11px;min-width:28px">${ef}%</span>
-        </div>
-      </td>
-      <td><span class="badge ${zBadge[z]}">${r.Clasificacion_Residual||'-'}</span></td>
-      <td style="font-size:11px">${r.Responsable||'-'}</td>
-      <td><span class="badge ${stateBadge(r.Estado)}">${r.Estado||'-'}</span></td>
-    </tr>`;
-  }).join('');
-  const tot=filtered.length, pages=Math.ceil(tot/PER_PAGE);
-  document.getElementById('pager').innerHTML=`
-    <span style="color:#888">${tot} registros · pág ${page}/${pages}</span>
-    <button onclick="goPage(${page-1})" ${page<=1?'disabled':''} style="padding:3px 10px;border-radius:6px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px">‹ Ant</button>
-    <button onclick="goPage(${page+1})" ${page>=pages?'disabled':''} style="padding:3px 10px;border-radius:6px;border:0.5px solid #ccc;background:#fff;cursor:pointer;font-size:12px">Sig ›</button>`;
+function showProcDrill(pro,imp){
+const tiers=getTiers(pImpactType);
+const procs=aggregateProcByType(pImpactType).filter(p=>{
+const probAvg=phmMode==='res'?p.avgProbR:p.avgProbI;
+const impAvg=phmMode==='res'?p.avgImpR:p.avgImpI;
+return probAvg===imp&&impAvg===pro;
+}).sort((a,b)=>b.exposicion-a.exposicion);
+const exp=(PROB_PCT[imp]/100)*tiers[pro].max;
+document.getElementById('procDrillTitle').textContent=`${PROB_LABELS[imp]} × ${tiers[pro].label} · ${hmLevelPI(imp,pro)}`;
+document.getElementById('procDrillSub').textContent=`Categoría: ${pImpactType} · ${procs.length} proceso(s) · Exp. máx por riesgo ${fmtExposure(exp,pImpactType)}`;
+const tb=document.querySelector('#procDrillTable tbody');
+tb.innerHTML=procs.length?procs.map(p=>`<tr><td><b>${esc(p.proc)}</b></td><td>${p.n}</td><td>${(p.sumProbR/p.n).toFixed(2)}</td><td>${(p.sumImpR/p.n).toFixed(2)}</td><td><span class="tag ${hmClassPI(p.avgProbR,p.avgImpR)}">${fmtExposure(p.exposicion,pImpactType)}</span></td><td>${p.critico}</td><td>${p.mitigacion.toFixed(0)}%</td></tr>`).join(''):'<tr><td colspan="7" class="empty">Sin procesos</td></tr>';
+document.getElementById('procDrillPanel').classList.add('open');
+document.getElementById('procDrillPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function goPage(p){const tot=filtered.length,pages=Math.ceil(tot/PER_PAGE);if(p<1||p>pages)return;page=p;renderTable();}
-
-function showDetail(idx){
-  const r=ALL[idx]; if(!r)return;
-  const f=(l,v)=>`<div class="mf"><label>${l}</label><p>${v||'-'}</p></div>`;
-  document.getElementById('modalWrap').innerHTML=`<div class="modal-back" onclick="if(event.target===this)closeModal()">
-    <div class="modal">
-      <h3>${r.Evento_Riesgo||'Detalle del riesgo'}</h3>
-      <div class="modal-grid">
-        ${f('ID Riesgo',r.ID_Riesgo)}${f('Fecha registro',r.Fecha_Registro)}
-        ${f('Proceso',r.Proceso)}${f('Subproceso',r.Subproceso)}
-        <div class="mf full"><label>Descripción</label><p>${r.Descripcion_Riesgo||'-'}</p></div>
-        ${f('Factor de riesgo',r.Factor_Riesgo)}${f('Responsable',r.Responsable)}
-        ${f('Probabilidad inherente',r.Probabilidad_Inherente)}${f('Impacto inherente',r.Impacto_Inherente)}
-        ${f('Nivel inherente',r.Nivel_Inherente)}
-        <div class="mf"><label>Clasificación inherente</label><p><span class="badge ${zBadge[zClass(r.Clasificacion_Inherente)]}">${r.Clasificacion_Inherente||'-'}</span></p></div>
-        <div class="mf full"><label>Control clave</label><p>${r.Control_Clave||'-'}</p></div>
-        ${f('Eficacia del control',r.Eficacia_Control_Porc+'%')}${f('Nivel residual',r.Nivel_Residual)}
-        <div class="mf"><label>Clasificación residual</label><p><span class="badge ${zBadge[zClass(r.Clasificacion_Residual)]}">${r.Clasificacion_Residual||'-'}</span></p></div>
-        <div class="mf"><label>Estado</label><p><span class="badge ${stateBadge(r.Estado)}">${r.Estado||'-'}</span></p></div>
-      </div>
-      <div class="modal-foot"><button class="btn-close" onclick="closeModal()">Cerrar</button></div>
-    </div>
-  </div>`;
+function renderProcRanking(){
+const procs=aggregateProcByType(pImpactType).sort((a,b)=>b.exposicion-a.exposicion);
+const cont=document.getElementById('procRanking');if(!cont)return;
+cont.innerHTML=procs.length?procs.map((p,i)=>{
+const hex=hmHexPI(p.avgProbR,p.avgImpR);
+return `<div style="display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);align-items:center">
+<div style="width:24px;height:24px;background:${hex};color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${i+1}</div>
+<div style="flex:1;min-width:0">
+<div style="font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.proc)}</div>
+<div style="font-size:10px;color:var(--text-2);margin-top:2px">${p.n} riesgos · ${p.critico} crítico(s) · Mit. ${p.mitigacion.toFixed(0)}%</div>
+</div>
+<div style="text-align:right"><div style="font-size:13px;font-weight:700;color:${hex}">${fmtExposure(p.exposicion,pImpactType)}</div><div style="font-size:9px;color:var(--muted)">EXP. ${pImpactType.toUpperCase()}</div></div>
+</div>`}).join(''):'<div class="empty">Sin procesos</div>';
 }
 
-function closeModal(){document.getElementById('modalWrap').innerHTML='';}
-
-function buildCharts(){
-  setTimeout(()=>{
-    const classCounts=cls=>{
-      const c={'Crítico':0,'Alto':0,'Moderado':0,'Bajo':0};
-      ALL.forEach(r=>{const v=r[cls]||'';Object.keys(c).forEach(k=>{if(v.toUpperCase().includes(k.toUpperCase().slice(0,4)))c[k]++;});});
-      return c;
-    };
-    const mkDoughnut=(id,data)=>{
-      if(charts[id])charts[id].destroy();
-      charts[id]=new Chart(document.getElementById(id),{type:'doughnut',data:{
-        labels:Object.keys(data),
-        datasets:[{data:Object.values(data),backgroundColor:['#F09595','#FAC775','#C0DD97','#9FE1CB'],borderWidth:0}]
-      },options:{plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}},cutout:'60%'}});
-    };
-    mkDoughnut('chartInherente',classCounts('Clasificacion_Inherente'));
-    mkDoughnut('chartResidual',classCounts('Clasificacion_Residual'));
-
-    const procMap={};
-    ALL.forEach(r=>{const p=r.Proceso||'?';if(!procMap[p])procMap[p]=0;procMap[p]+=(+r.Nivel_Inherente||0);});
-    const sortedProc=Object.entries(procMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    if(charts.chartProcesos)charts.chartProcesos.destroy();
-    charts.chartProcesos=new Chart(document.getElementById('chartProcesos'),{type:'bar',data:{
-      labels:sortedProc.map(x=>x[0].length>20?x[0].slice(0,18)+'…':x[0]),
-      datasets:[{data:sortedProc.map(x=>x[1]),backgroundColor:'#F09595',borderRadius:4}]
-    },options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{font:{size:10}}}}}});
-
-    const efMap={};const efCnt={};
-    ALL.forEach(r=>{const p=r.Proceso||'?';if(!efMap[p]){efMap[p]=0;efCnt[p]=0;}efMap[p]+=(+r.Eficacia_Control_Porc||0);efCnt[p]++;});
-    const sortedEf=Object.entries(efMap).map(([k,v])=>[k,Math.round(v/efCnt[k])]).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(charts.chartEficacia)charts.chartEficacia.destroy();
-    charts.chartEficacia=new Chart(document.getElementById('chartEficacia'),{type:'bar',data:{
-      labels:sortedEf.map(x=>x[0].length>18?x[0].slice(0,16)+'…':x[0]),
-      datasets:[{data:sortedEf.map(x=>x[1]),backgroundColor:'#9FE1CB',borderRadius:4}]
-    },options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,grid:{display:false}},y:{ticks:{font:{size:10}}}}}});
-
-    const stMap={};
-    ALL.forEach(r=>{const s=r.Estado||'N/A';stMap[s]=(stMap[s]||0)+1;});
-    if(charts.chartEstado)charts.chartEstado.destroy();
-    charts.chartEstado=new Chart(document.getElementById('chartEstado'),{type:'pie',data:{
-      labels:Object.keys(stMap),
-      datasets:[{data:Object.values(stMap),backgroundColor:['#B5D4F4','#FAC775','#C0DD97','#D3D1C7','#F09595'],borderWidth:0}]
-    },options:{plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
-
-    const zones=['Bajo','Moderado','Alto','Crítico'];
-    const inh=zones.map(z=>ALL.filter(r=>(r.Clasificacion_Inherente||'').includes(z.slice(0,4))).length);
-    const res=zones.map(z=>ALL.filter(r=>(r.Clasificacion_Residual||'').includes(z.slice(0,4))).length);
-    if(charts.chartReduccion)charts.chartReduccion.destroy();
-    charts.chartReduccion=new Chart(document.getElementById('chartReduccion'),{type:'bar',data:{
-      labels:zones,
-      datasets:[
-        {label:'Inherente',data:inh,backgroundColor:'#F09595',borderRadius:3},
-        {label:'Residual',data:res,backgroundColor:'#9FE1CB',borderRadius:3}
-      ]
-    },options:{plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false}},y:{grid:{display:false}}}}});
-  },200);
+/* ----- OTRAS PÁGINAS ----- */
+function renderCriticalPage(){
+const crit=FILTERED.filter(r=>riskLevel(r,'Financiero')==='Crítico'||fueraApetito(r));
+document.getElementById('critTotal').textContent=crit.length;
+document.getElementById('critSinPlan').textContent=crit.filter(r=>!r.Estado_Plan_Accion||r.Estado_Plan_Accion==='No Iniciado').length;
+document.getElementById('critPerdida').textContent=fmtMoney(crit.reduce((s,r)=>s+(+r.Perdida_Neta||0),0));
+const today=new Date('2026-05-10');
+const days=crit.filter(r=>r.Fecha_Registro).map(r=>Math.floor((today-new Date(r.Fecha_Registro))/86400000));
+document.getElementById('critDias').textContent=days.length?Math.round(days.reduce((s,d)=>s+d,0)/days.length):0;
+const tb=document.querySelector('#critTable tbody');
+tb.innerHTML=crit.length?crit.sort((a,b)=>exposure(b,'Financiero','Res')-exposure(a,'Financiero','Res')).map((r,i)=>`<tr class="row-critico"><td>${i+1}</td><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Proceso)}</td><td style="font-size:10px">${esc(r.Causa||'')}</td><td><span class="tag ${riskClass(r,'Financiero').replace('tag-','tag-')}">${impactValue(r,'Financiero','Inh')}</span></td><td><span class="tag ${riskClass(r,'Financiero')}">${impactValue(r,'Financiero','Res')}</span></td><td>${esc(r.Apetito_Riesgo)} ${fueraApetito(r)?'<span class="tag tag-fuera" style="margin-left:4px">FUERA</span>':''}</td><td>${esc(r.Estado_Riesgo)}</td><td>${fmtMoney(r.Perdida_Neta)}</td><td><button class="btn btn-sm" onclick="openRiskModal('${esc(r.ID_Riesgo)}')">✎</button></td></tr>`).join(''):'<tr><td colspan="11" class="empty">No hay críticos</td></tr>';
 }
 
-function setTab(id){
-  document.querySelectorAll('.tab').forEach((t,i)=>{
-    const ids=['vista-matriz','vista-tabla','vista-charts'];
-    t.classList.toggle('active',ids[i]===id);
-  });
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id));
-  if(id==='vista-charts')buildCharts();
+function renderLossesPage(){
+const F=FILTERED.filter(r=>+r.Perdida_Bruta>0||r.Fecha_Evento);
+document.getElementById('lossEventos').textContent=F.length;
+const sumB=F.reduce((s,r)=>s+(+r.Perdida_Bruta||0),0),sumR=F.reduce((s,r)=>s+(+r.Perdida_Recuperada||0),0),sumN=F.reduce((s,r)=>s+(+r.Perdida_Neta||0),0);
+document.getElementById('lossBruta').textContent=fmtMoney(sumB);
+document.getElementById('lossRecup').textContent=fmtMoney(sumR);
+document.getElementById('lossNeta').textContent=fmtMoney(sumN);
+document.getElementById('lossPctRec').textContent=sumB?Math.round(sumR*100/sumB)+'%':'0%';
+const months=lastNMonths(12);const byM=months.map(m=>({m,b:0,n:0}));
+F.forEach(r=>{const ym=String(r.Fecha_Evento||'').slice(0,7);const row=byM.find(b=>b.m===ym);if(row){row.b+=+r.Perdida_Bruta||0;row.n+=+r.Perdida_Neta||0}});
+drawChart('chartLossMonth','bar',{labels:months,datasets:[{label:'Bruta',data:byM.map(b=>b.b),backgroundColor:'#ef9a9a'},{label:'Neta',data:byM.map(b=>b.n),backgroundColor:'#c62828'}]},{plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}});
+const baselLoss=aggregate(F,'Categoria_Basilea',r=>+r.Perdida_Neta||0);
+drawChart('chartLossBasel','bar',{labels:Object.keys(baselLoss),datasets:[{label:'Neta',data:Object.values(baselLoss),backgroundColor:'#1e88e5'}]},{indexAxis:'y',plugins:{legend:{display:false}}});
+const tb=document.querySelector('#lossTable tbody');
+const top=[...F].sort((a,b)=>(+b.Perdida_Neta||0)-(+a.Perdida_Neta||0)).slice(0,30);
+tb.innerHTML=top.length?top.map(r=>`<tr><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.Fecha_Evento)}</td><td>${esc(r.Proceso)}</td><td>${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Categoria_Basilea)}</td><td>${fmtMoney(r.Perdida_Bruta)}</td><td>${fmtMoney(r.Perdida_Recuperada)}</td><td><b>${fmtMoney(r.Perdida_Neta)}</b></td></tr>`).join(''):'<tr><td colspan="8" class="empty">Sin eventos</td></tr>';
 }
 
-function exportCSV(){
-  const cols=['ID_Riesgo','Proceso','Subproceso','Evento_Riesgo','Factor_Riesgo','Probabilidad_Inherente','Impacto_Inherente','Nivel_Inherente','Clasificacion_Inherente','Control_Clave','Eficacia_Control_Porc','Nivel_Residual','Clasificacion_Residual','Responsable','Estado','Fecha_Registro'];
-  const rows=[cols.join(','),...filtered.map(r=>cols.map(c=>`"${(r[c]||'').toString().replace(/"/g,'""')}"`).join(','))];
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(rows.join('\n'));
-  a.download='riesgo_operacional_filtrado.csv';a.click();
+function kriStatus(r){const v=+r.Valor_KRI,a=+r.Umbral_Aceptable,t=+r.Umbral_Tolerable,c=+r.Umbral_Critico;if(!v&&v!==0)return null;if(!c)return null;if(v>=c)return 'Crítico';if(v>=t)return 'Tolerable';if(v>=a)return 'Aceptable';return 'Óptimo';}
+function renderKrisPage(){
+const F=FILTERED.filter(r=>r.KRI&&r.Valor_KRI!=null);
+document.getElementById('kriVerde').textContent=F.filter(r=>{const s=kriStatus(r);return s==='Óptimo'||s==='Aceptable'}).length;
+document.getElementById('kriAmarillo').textContent=F.filter(r=>kriStatus(r)==='Tolerable').length;
+document.getElementById('kriRojo').textContent=F.filter(r=>kriStatus(r)==='Crítico').length;
+document.getElementById('kriTotal').textContent=F.length;
+const gauges=[...F].sort((a,b)=>(+b.Valor_KRI/(+b.Umbral_Critico||1))-(+a.Valor_KRI/(+a.Umbral_Critico||1))).slice(0,8);
+document.getElementById('kriGauges').innerHTML=gauges.map(r=>{
+const vv=+r.Valor_KRI,a=+r.Umbral_Aceptable,t=+r.Umbral_Tolerable,c=+r.Umbral_Critico;
+const max=c*1.2,pct=Math.min(100,Math.max(0,vv/max*100));
+const status=kriStatus(r);
+const color=status==='Crítico'?'var(--red)':status==='Tolerable'?'var(--yellow)':'var(--green)';
+return `<div class="gauge-card"><div class="gauge-name">${esc(r.KRI)}</div><div class="gauge-value" style="color:${color}">${fmt(vv)}</div><div class="gauge-bar"><div class="gauge-pointer" style="left:${pct}%"></div></div><div class="gauge-thresh"><span>0</span><span>${fmt(a)}</span><span>${fmt(t)}</span><span>${fmt(c)}</span></div><div class="gauge-status" style="color:${color}">● ${status||'–'}</div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px">${esc(r.ID_Riesgo)} · ${esc(r.Proceso)}</div></div>`;
+}).join('')||'<div class="empty">Sin KRIs</div>';
+const tb=document.querySelector('#kriTable tbody');
+tb.innerHTML=F.length?F.map(r=>{const s=kriStatus(r);const cls=s==='Crítico'?'tag-critico':s==='Tolerable'?'tag-medio':'tag-bajo';return `<tr><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.KRI)}</td><td><b>${fmt(r.Valor_KRI)}</b></td><td>${fmt(r.Umbral_Aceptable)}</td><td>${fmt(r.Umbral_Tolerable)}</td><td>${fmt(r.Umbral_Critico)}</td><td><span class="tag ${cls}">${s||'–'}</span></td><td>${esc(r.Proceso)}</td></tr>`}).join(''):'<tr><td colspan="8" class="empty">Sin KRIs</td></tr>';
 }
+
+function renderControlsPage(){
+const F=FILTERED.filter(r=>r.Control_Clave);
+const efs=F.map(r=>+r.Efectividad_Control||0);
+const avg=efs.length?Math.round(efs.reduce((s,e)=>s+e,0)/efs.length):0;
+document.getElementById('ctrlEfect').textContent=avg+'%';
+document.getElementById('ctrlTotal').textContent=F.length;
+document.getElementById('ctrlDebiles').textContent=F.filter(r=>+r.Efectividad_Control<60).length;
+const mit=F.filter(r=>impactValue(r,'Financiero','Inh')>0).map(r=>(impactValue(r,'Financiero','Inh')-impactValue(r,'Financiero','Res'))*100/impactValue(r,'Financiero','Inh'));
+document.getElementById('ctrlMitig').textContent=mit.length?Math.round(mit.reduce((s,m)=>s+m,0)/mit.length)+'%':'0%';
+const tipoEf={};F.forEach(r=>{const t=r.Tipo_Control||'(s/d)';if(!tipoEf[t])tipoEf[t]={sum:0,n:0};tipoEf[t].sum+=+r.Efectividad_Control||0;tipoEf[t].n++});
+drawChart('chartCtrlTipo','bar',{labels:Object.keys(tipoEf),datasets:[{label:'Efect %',data:Object.entries(tipoEf).map(([,v])=>Math.round(v.sum/v.n)),backgroundColor:['#1e88e5','#26a69a','#ef6c00']}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}});
+const freq=groupBy(F,'Frecuencia_Control');
+drawChart('chartCtrlFreq','doughnut',{labels:Object.keys(freq),datasets:[{data:Object.values(freq),backgroundColor:PALETTE,borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}}}});
+const tb=document.querySelector('#ctrlTable tbody');
+tb.innerHTML=F.length?F.slice(0,50).map(r=>{const ef=+r.Efectividad_Control||0;const cls=ef>=80?'tag-bajo':ef>=60?'tag-medio':'tag-critico';return `<tr><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.Control_Clave)}</td><td>${esc(r.Tipo_Control)}</td><td>${esc(r.Frecuencia_Control)}</td><td><span class="tag ${cls}">${ef}%</span></td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.Riesgo_Operacional)}">${esc(r.Riesgo_Operacional)}</td></tr>`}).join(''):'<tr><td colspan="6" class="empty">Sin controles</td></tr>';
+}
+
+function renderFactorsPage(){
+const F=FILTERED;
+const fact=groupBy(F,'Factor_Riesgo');
+drawChart('chartFactor2','bar',{labels:Object.keys(fact),datasets:[{label:'# Riesgos',data:Object.values(fact),backgroundColor:'#1e88e5'}]},{indexAxis:'y',plugins:{legend:{display:false}}});
+const causas=groupBy(F,'Causa');
+const topC=Object.entries(causas).sort((a,b)=>b[1]-a[1]).slice(0,12);
+drawChart('chartCausas2','bar',{labels:topC.map(t=>t[0]),datasets:[{label:'# Riesgos',data:topC.map(t=>t[1]),backgroundColor:'#26a69a'}]},{indexAxis:'y',plugins:{legend:{display:false}}});
+// Tabla detalle Factor-Causa
+const fc={};
+F.forEach(r=>{const k=(r.Factor_Riesgo||'')+'||'+(r.Causa||'');if(!fc[k])fc[k]={factor:r.Factor_Riesgo,causa:r.Causa,n:0,sumScore:0,exp:0,perdida:0};fc[k].n++;fc[k].sumScore+=(+r.Nivel_Riesgo_Residual)||0;fc[k].exp+=exposure(r,'Financiero','Res');fc[k].perdida+=+r.Perdida_Neta||0;});
+const arr=Object.values(fc).sort((a,b)=>b.exp-a.exp);
+const tb=document.querySelector('#causasTable tbody');
+tb.innerHTML=arr.length?arr.map(c=>`<tr><td><b>${esc(c.factor)}</b></td><td>${esc(c.causa)}</td><td>${c.n}</td><td>${(c.sumScore/c.n).toFixed(2)}</td><td>${fmtMoney(c.exp)}</td><td>${fmtMoney(c.perdida)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Sin datos</td></tr>';
+}
+
+function renderActionsPage(){
+const F=FILTERED.filter(r=>r.Estado_Plan_Accion);
+document.getElementById('planTotal').textContent=F.length;
+document.getElementById('planComp').textContent=F.filter(r=>r.Estado_Plan_Accion==='Completado').length;
+document.getElementById('planCurso').textContent=F.filter(r=>r.Estado_Plan_Accion==='En Curso').length;
+const today=new Date('2026-05-10');
+const venc=F.filter(r=>r.Fecha_Compromiso&&new Date(r.Fecha_Compromiso)<today&&r.Estado_Plan_Accion!=='Completado');
+document.getElementById('planVenc').textContent=venc.length;
+const prox=F.filter(r=>r.Fecha_Compromiso&&r.Estado_Plan_Accion!=='Completado'&&new Date(r.Fecha_Compromiso)>=today&&(new Date(r.Fecha_Compromiso)-today)/86400000<=30);
+document.getElementById('planProx').textContent=prox.length;
+const est=groupBy(F,'Estado_Plan_Accion');
+drawChart('chartPlan','doughnut',{labels:Object.keys(est),datasets:[{data:Object.values(est),backgroundColor:['#90a4ae','#1e88e5','#2e7d32','#c62828'],borderWidth:2,borderColor:'#fff'}]},{plugins:{legend:{position:'bottom'}}});
+const resp=groupBy(F,'Responsable');
+drawChart('chartPlanResp','bar',{labels:Object.keys(resp),datasets:[{label:'# Planes',data:Object.values(resp),backgroundColor:'#1e88e5'}]},{indexAxis:'y',plugins:{legend:{display:false}}});
+const tb=document.querySelector('#planTable tbody');
+tb.innerHTML=F.length?F.map(r=>{const days=r.Fecha_Compromiso?Math.floor((new Date(r.Fecha_Compromiso)-today)/86400000):null;const tag=r.Estado_Plan_Accion==='Vencido'||(days!=null&&days<0&&r.Estado_Plan_Accion!=='Completado')?'tag-critico':r.Estado_Plan_Accion==='Completado'?'tag-bajo':'tag-medio';return `<tr><td class="cell-id">${esc(r.ID_Riesgo)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.Riesgo_Operacional)}">${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Proceso)}</td><td>${esc(r.Responsable)}</td><td>${esc(r.Fecha_Compromiso)}</td><td><span class="tag ${tag}">${esc(r.Estado_Plan_Accion)}</span></td><td>${days!=null?(days<0?'<span style="color:var(--red);font-weight:600">'+days+'</span>':days+' d'):'–'}</td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Sin planes</td></tr>';
+}
+
+function renderQuarterlyPage(){
+const F=FILTERED.filter(r=>r.Historial&&r.Historial.length);
+const byQ=QUARTERS.map(q=>{
+let sumScoreR=0,sumScoreI=0,sumEfect=0,n=0,bajo=0,medio=0,alto=0,critico=0;
+F.forEach(r=>{
+const h=r.Historial.find(x=>x.Trimestre===q);
+if(h){
+sumScoreR+=+h.ScoreR;sumScoreI+=+h.ScoreI;sumEfect+=+h.Efectividad;n++;
+const lvl=hmLevelPI(h.ProbR,h.ImpR);
+if(lvl==='Bajo')bajo++;else if(lvl==='Medio')medio++;else if(lvl==='Alto')alto++;else critico++;
+}
+});
+return {q,n,bajo,medio,alto,critico,avgR:n?sumScoreR/n:0,avgI:n?sumScoreI/n:0,avgEfect:n?sumEfect/n:0};
+});
+document.getElementById('qtrTotal').textContent=byQ.filter(q=>q.n>0).length;
+const last=byQ[byQ.length-1],prev=byQ[byQ.length-2];
+if(last&&prev){
+const dCrit=last.critico-prev.critico;
+const dScore=last.avgR-prev.avgR;
+const dCritEl=document.getElementById('qtrDeltaCrit');
+dCritEl.textContent=(dCrit>0?'+':'')+dCrit;
+dCritEl.style.color=dCrit>0?'var(--red)':dCrit<0?'var(--green)':'';
+const dScoreEl=document.getElementById('qtrDeltaScore');
+dScoreEl.textContent=(dScore>0?'+':'')+dScore.toFixed(2);
+dScoreEl.style.color=dScore>0?'var(--red)':dScore<0?'var(--green)':'';
+const trend=dScore<-0.3?'▼ Mejora':dScore>0.3?'▲ Deterioro':'■ Estable';
+const trEl=document.getElementById('qtrTrend');
+trEl.textContent=trend;
+trEl.style.color=dScore<-0.3?'var(--green)':dScore>0.3?'var(--red)':'var(--text-2)';
+}
+drawChart('chartQtrLevels','bar',{labels:QUARTERS,datasets:[{label:'Bajo',data:byQ.map(q=>q.bajo),backgroundColor:'#2e7d32',stack:'1'},{label:'Medio',data:byQ.map(q=>q.medio),backgroundColor:'#f9a825',stack:'1'},{label:'Alto',data:byQ.map(q=>q.alto),backgroundColor:'#ef6c00',stack:'1'},{label:'Crítico',data:byQ.map(q=>q.critico),backgroundColor:'#c62828',stack:'1'}]},{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}});
+drawChart('chartQtrScore','line',{labels:QUARTERS,datasets:[{label:'Inherente',data:byQ.map(q=>+q.avgI.toFixed(2)),borderColor:'#90caf9',backgroundColor:'#90caf922',tension:.3,fill:true},{label:'Residual',data:byQ.map(q=>+q.avgR.toFixed(2)),borderColor:'#1e88e5',backgroundColor:'#1e88e522',tension:.3,borderWidth:2.5,fill:true},{label:'Efectividad %',data:byQ.map(q=>+q.avgEfect.toFixed(1)),borderColor:'#2e7d32',borderDash:[5,3],tension:.3,yAxisID:'y2'}]},{plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true},y2:{beginAtZero:true,max:100,position:'right',grid:{drawOnChartArea:false}}}});
+const procs=aggregateProcByType('Financiero').sort((a,b)=>b.exposicion-a.exposicion).slice(0,5);
+const procDatasets=procs.map((p,idx)=>{
+const data=QUARTERS.map(q=>{const rs=F.filter(r=>r.Proceso===p.proc);let s=0,n=0;rs.forEach(r=>{const h=r.Historial.find(x=>x.Trimestre===q);if(h){s+=+h.ScoreR;n++}});return n?+(s/n).toFixed(2):null;});
+return {label:p.proc,data,borderColor:PALETTE[idx],tension:.3,borderWidth:2};
+});
+drawChart('chartQtrProcesos','line',{labels:QUARTERS,datasets:procDatasets},{plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}});
+const tb=document.querySelector('#qtrTable tbody');
+tb.innerHTML=byQ.map((q,idx)=>{
+const prev=idx>0?byQ[idx-1]:null;
+const delta=prev&&prev.avgR?(q.avgR-prev.avgR):null;
+const deltaTxt=delta==null?'–':(delta>0?'<span style="color:var(--red)">+'+delta.toFixed(2)+'</span>':delta<0?'<span style="color:var(--green)">'+delta.toFixed(2)+'</span>':'0.00');
+return `<tr><td><b>${q.q}</b></td><td>${q.n}</td><td>${q.bajo}</td><td>${q.medio}</td><td>${q.alto}</td><td><span style="color:var(--red);font-weight:600">${q.critico}</span></td><td><b>${q.avgR.toFixed(2)}</b></td><td>${q.n?(q.critico*100/q.n).toFixed(1)+'%':'–'}</td><td>${deltaTxt}</td></tr>`;
+}).join('');
+}
+
+function getAlerts(){
+const alerts=[];const today=new Date('2026-05-10');
+FILTERED.forEach(r=>{
+if(riskLevel(r,'Financiero')==='Crítico')alerts.push({sev:'danger',title:'Riesgo Crítico',msg:`${r.ID_Riesgo} · ${r.Riesgo_Operacional}`,who:r.Responsable});
+if(fueraApetito(r))alerts.push({sev:'warning',title:'Fuera de Apetito',msg:`${r.ID_Riesgo} · Exp. ${fmtMoney(exposureFinanciero(r))} > tol. ${fmtMoney(r.Tolerancia_Riesgo)}`,who:r.Proceso});
+if(kriStatus(r)==='Crítico')alerts.push({sev:'danger',title:'KRI Crítico',msg:`${r.KRI} = ${r.Valor_KRI}`,who:r.ID_Riesgo});
+if(r.Fecha_Compromiso&&new Date(r.Fecha_Compromiso)<today&&r.Estado_Plan_Accion!=='Completado')alerts.push({sev:'warning',title:'Plan Vencido',msg:`${r.ID_Riesgo} · ${r.Fecha_Compromiso}`,who:r.Responsable});
+});
+return alerts;
+}
+function countAlerts(){return getAlerts().length}
+function renderAlertsPage(){const alerts=getAlerts().slice(0,60);document.getElementById('alertsList').innerHTML=alerts.length?alerts.map(a=>`<div class="alert ${a.sev}"><div class="alert-icon">!</div><div class="alert-content"><div class="alert-title">${esc(a.title)}</div><div class="alert-msg">${esc(a.msg)}</div><div class="alert-time">${esc(a.who||'')}</div></div></div>`).join(''):'<div class="empty">Sin alertas</div>';}
+
+function renderMatrixTable(){
+let rows=[...FILTERED];
+if(sortKey){rows.sort((a,b)=>{let av=a[sortKey],bv=b[sortKey];if(!isNaN(+av)&&!isNaN(+bv)){av=+av;bv=+bv}if(av<bv)return -1*sortDir;if(av>bv)return 1*sortDir;return 0});}
+document.getElementById('matrixCount').textContent=rows.length+' riesgos';
+const tb=document.querySelector('#matrixTable tbody');
+tb.innerHTML=rows.length?rows.map(r=>`<tr ${riskLevel(r,'Financiero')==='Crítico'?'class="row-critico"':''}><td class="cell-id">${esc(r.ID_Riesgo)}</td><td>${esc(r.Proceso)}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.Riesgo_Operacional)}">${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Factor_Riesgo)}</td><td style="font-size:11px">${esc(r.Causa||'')}</td><td><span class="tag ${hmClassPI(r.Probabilidad_Inherente,impactValue(r,'Financiero','Inh'))}">${impactValue(r,'Financiero','Inh')}</span></td><td><span class="tag ${riskClass(r,'Financiero')}">${impactValue(r,'Financiero','Res')}</span></td><td>${fmtMoney(exposureFinanciero(r))}</td><td>${esc(r.Estado_Riesgo)}</td><td>${esc(r.Responsable)}</td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="openRiskModal('${esc(r.ID_Riesgo)}')">✎</button> <button class="btn btn-sm btn-danger" onclick="deleteRisk('${esc(r.ID_Riesgo)}')">×</button></td></tr>`).join(''):'<tr><td colspan="11" class="empty">Sin registros</td></tr>';
+}
+
+/* =============== CRUD =============== */
+function openRiskModal(id){
+editingId=id||null;
+document.getElementById('modalTitle').textContent=id?`Editar · ${id}`:'Nuevo Riesgo';
+const form=document.getElementById('riskForm');form.reset();
+if(id){const r=DATA.find(x=>x.ID_Riesgo===id);if(r){Object.keys(r).forEach(k=>{const f=form.elements[k];if(f)f.value=r[k]||''});updateCausaOptions();const cs=document.getElementById('formCausa');if(r.Causa)cs.value=r.Causa;}}
+else {form.elements['ID_Riesgo'].value=nextId();form.elements['Fecha_Registro'].value=new Date().toISOString().slice(0,10);}
+document.getElementById('riskModal').classList.add('open');
+}
+function nextId(){const nums=DATA.map(r=>parseInt(String(r.ID_Riesgo||'').replace(/\D/g,''))||0);return 'RO-'+String(Math.max(0,...nums)+1).padStart(4,'0')}
+function closeRiskModal(){document.getElementById('riskModal').classList.remove('open')}
+function saveRisk(){
+const form=document.getElementById('riskForm');const fd=new FormData(form);const obj={};fd.forEach((v,k)=>obj[k]=v);
+if(!obj.ID_Riesgo){toast('ID requerido','error');return}
+if(!obj.Riesgo_Operacional){toast('Descripción requerida','error');return}
+obj.Impacto_Inherente=+obj.Impacto_Financiero_Inh||0;
+obj.Impacto_Residual=+obj.Impacto_Financiero_Res||0;
+obj.Nivel_Riesgo_Inherente=(+obj.Probabilidad_Inherente||0)*obj.Impacto_Inherente;
+obj.Nivel_Riesgo_Residual=(+obj.Probabilidad_Residual||0)*obj.Impacto_Residual;
+if(obj.Perdida_Bruta&&!obj.Perdida_Neta) obj.Perdida_Neta=(+obj.Perdida_Bruta)-(+obj.Perdida_Recuperada||0);
+if(editingId){const i=DATA.findIndex(r=>r.ID_Riesgo===editingId);if(i>=0)DATA[i]={...DATA[i],...obj};}
+else {if(DATA.find(r=>r.ID_Riesgo===obj.ID_Riesgo)){toast('ID ya existe','error');return}DATA.push(obj);}
+saveData();closeRiskModal();applyFilters();toast(editingId?'Actualizado':'Creado','success');
+}
+function deleteRisk(id){if(!confirm('¿Eliminar '+id+'?'))return;DATA=DATA.filter(r=>r.ID_Riesgo!==id);saveData();applyFilters();toast('Eliminado','success')}
+
+/* =============== IMPORT/EXPORT =============== */
+function handleImport(e){
+const f=e.target.files[0];if(!f)return;
+const r=new FileReader();
+r.onload=ev=>{
+try{
+const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+const preferredSheets=['Matriz_Riesgos','RCSA','Risk Assessment','Risk_Assessment','Plantilla_RCSA','Riesgos','Autoevaluacion','Self_Assessment'];
+let sheetName=wb.SheetNames[0];
+for(const ps of preferredSheets){if(wb.SheetNames.includes(ps)){sheetName=ps;break;}}
+const ws=wb.Sheets[sheetName];
+const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+if(!raw.length){toast('Archivo vacío','error');return}
+const firstKeys=Object.keys(raw[0]);
+const canonicalSet=new Set(Object.keys(FIELD_ALIASES));
+const directMatches=firstKeys.filter(k=>canonicalSet.has(k)).length;
+const needsMapping=directMatches < firstKeys.length*0.6;
+const json=raw.map(row=>normalizeRecord(mapRCSARow(row)));
+// === Cargar hoja Historial_Trimestral si existe ===
+const histSheets=['Historial_Trimestral','Historial','Quarterly_History','Historico_Trimestral'];
+let histLoaded=0;
+for(const hs of histSheets){
+if(wb.SheetNames.includes(hs)){
+const hws=wb.Sheets[hs];
+const hraw=XLSX.utils.sheet_to_json(hws,{defval:'',raw:false});
+const byId={};
+hraw.forEach(h=>{
+const id=h.ID_Riesgo||h.ID||h['Risk ID'];
+if(!id)return;
+if(!byId[id])byId[id]=[];
+byId[id].push({
+Trimestre:h.Trimestre||h.Quarter||h.Trim,
+ProbI:+h.ProbI||+h.Prob_Inherente||0,
+ImpI:+h.ImpI||+h.Imp_Inherente||0,
+ScoreI:+h.ScoreI||(+h.ProbI*+h.ImpI)||0,
+ProbR:+h.ProbR||+h.Prob_Residual||0,
+ImpR:+h.ImpR||+h.Imp_Residual||0,
+ScoreR:+h.ScoreR||(+h.ProbR*+h.ImpR)||0,
+Efectividad:+h.Efectividad||+h.Effectiveness||0
+});
+});
+json.forEach(r=>{if(byId[r.ID_Riesgo]){r.Historial=byId[r.ID_Riesgo].sort((a,b)=>String(a.Trimestre).localeCompare(String(b.Trimestre)));histLoaded++;}});
+break;
+}
+}
+// === Si NO hay histórico, generarlo automáticamente desde 2024-Q1 ===
+let histGenerated=0;
+json.forEach(r=>{
+if(!r.Historial||!r.Historial.length){
+r.Historial=buildSyntheticHistorial(r);
+histGenerated++;
+}
+});
+const mappedCount=needsMapping?json.filter(r=>r.ID_Riesgo&&r.Riesgo_Operacional).length:json.length;
+let msg=`Archivo leído: ${raw.length} filas · Hoja: "${sheetName}"\n`;
+if(needsMapping)msg+=`Formato RCSA detectado · ${mappedCount} registros mapeados\n`;
+if(histLoaded)msg+=`Histórico trimestral cargado para ${histLoaded} riesgos\n`;
+if(histGenerated)msg+=`Histórico sintético generado para ${histGenerated} riesgos (10 trimestres desde 2024-Q1)\n`;
+msg+=`\nOK = Reemplazar datos\nCancelar = Hacer merge por ID`;
+const replace=confirm(msg);
+if(replace){DATA=json;}else{json.forEach(row=>{const i=DATA.findIndex(x=>x.ID_Riesgo===row.ID_Riesgo);if(i>=0)DATA[i]={...DATA[i],...row};else DATA.push(row);});}
+saveData();applyFilters();toast(`Importados ${json.length} riesgos${needsMapping?' (RCSA)':''}${histGenerated?' · histórico generado':histLoaded?' · histórico cargado':''}`,'success');
+}catch(err){console.error(err);toast('Error al importar: '+err.message,'error')}
+e.target.value='';
+};
+r.readAsArrayBuffer(f);
+}
+
+// Genera 10 trimestres de histórico (2024-Q1 a 2026-Q2) plausibles que convergen a los valores actuales del riesgo.
+function buildSyntheticHistorial(r){
+const probTarget=+r.Probabilidad_Inherente||3;
+const impTarget=+r.Impacto_Inherente||+r.Impacto_Financiero_Inh||3;
+const efectTarget=+r.Efectividad_Control||60;
+let curProb=Math.max(1,Math.min(5,probTarget+Math.floor(Math.random()*2)+1));
+let curImp=Math.max(1,Math.min(5,impTarget+Math.floor(Math.random()*2)));
+let curEf=Math.max(20,Math.min(95,efectTarget-Math.floor(Math.random()*25+15)));
+const hist=[];
+QUARTERS.forEach((q,idx)=>{
+if(idx<QUARTERS.length-1){
+if(Math.random()<.35)curProb=Math.max(1,Math.min(5,curProb+(curProb>probTarget?-1:curProb<probTarget?1:Math.floor(Math.random()*3)-1)));
+if(Math.random()<.30)curImp=Math.max(1,Math.min(5,curImp+(curImp>impTarget?-1:curImp<impTarget?1:0)));
+if(Math.random()<.60)curEf=Math.max(20,Math.min(95,curEf+Math.floor(Math.random()*9)));
+}else{curProb=probTarget;curImp=impTarget;curEf=efectTarget;}
+const cProbR=Math.max(1,curProb-(curEf>70?2:curEf>50?1:0));
+const cImpR=Math.max(1,curImp-(curEf>80?1:0));
+hist.push({Trimestre:q,ProbI:curProb,ImpI:curImp,ScoreI:curProb*curImp,ProbR:cProbR,ImpR:cImpR,ScoreR:cProbR*cImpR,Efectividad:curEf});
+});
+return hist;
+}
+
+// Regenera el histórico para TODOS los riesgos (incluso los que ya tienen, por si se quiere actualizar)
+function regenerateAllHistorial(){
+let n=0;
+DATA.forEach(r=>{r.Historial=buildSyntheticHistorial(r);n++;});
+saveData();applyFilters();
+toast(`Histórico trimestral regenerado para ${n} riesgos`,'success');
+}
+function exportExcel(){
+const wb=XLSX.utils.book_new();
+const flat=DATA.map(r=>{const o={...r};delete o.Historial;return o});
+XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(flat),'Matriz_Riesgos');
+const histRows=[];DATA.forEach(r=>{(r.Historial||[]).forEach(h=>histRows.push({ID_Riesgo:r.ID_Riesgo,Proceso:r.Proceso,...h}))});
+if(histRows.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(histRows),'Historial_Trimestral');
+XLSX.writeFile(wb,`Matriz_RO_${new Date().toISOString().slice(0,10)}.xlsx`);
+toast('Excel descargado','success');
+}
+
+/* =============== INFORME EJECUTIVO WORD =============== */
+function buildReportHTML(){
+const periodo=v('rptPeriodo'),entidad=v('rptEntidad'),autor=v('rptAutor'),dirigido=v('rptDirigido'),notas=v('rptNotas');
+const F=FILTERED.length?FILTERED:DATA;
+const total=F.length;
+const criticos=F.filter(r=>riskLevel(r,'Financiero')==='Crítico');
+const fueraAp=F.filter(fueraApetito);
+const expFin=F.reduce((s,r)=>s+exposure(r,'Financiero','Res'),0);
+const expFinInh=F.reduce((s,r)=>s+exposure(r,'Financiero','Inh'),0);
+const mitigacion=expFinInh>0?((expFinInh-expFin)*100/expFinInh):0;
+const perdidaNeta=F.reduce((s,r)=>s+(+r.Perdida_Neta||0),0);
+const ctrl=F.filter(r=>r.Efectividad_Control);
+const efAvg=ctrl.length?Math.round(ctrl.reduce((s,r)=>s+(+r.Efectividad_Control||0),0)/ctrl.length):0;
+const krisCrit=F.filter(r=>kriStatus(r)==='Crítico').length;
+const planesVenc=F.filter(r=>r.Fecha_Compromiso&&new Date(r.Fecha_Compromiso)<new Date()&&r.Estado_Plan_Accion!=='Completado').length;
+const topCrit=[...criticos].sort((a,b)=>exposure(b,'Financiero','Res')-exposure(a,'Financiero','Res')).slice(0,10);
+const procs=aggregateProcByType('Financiero').sort((a,b)=>b.exposicion-a.exposicion).slice(0,10);
+
+// Exposición por categoría
+const expCats=['Financiero','Operativo','Regulatorio','Reputacional'].map(c=>({
+cat:c,total:F.reduce((s,r)=>s+exposure(r,c,'Res'),0),
+crit:F.filter(r=>riskLevel(r,c)==='Crítico').length,
+alto:F.filter(r=>riskLevel(r,c)==='Alto').length
+}));
+
+// Top causas
+const causas={};F.forEach(r=>{const k=(r.Factor_Riesgo||'')+' | '+(r.Causa||'');causas[k]=(causas[k]||0)+1});
+const topCausas=Object.entries(causas).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+const fecha=new Date().toLocaleDateString('es-PE',{day:'numeric',month:'long',year:'numeric'});
+const css=`<style>
+body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#222;line-height:1.5;margin:0}
+.cover{text-align:center;padding:60pt 40pt;page-break-after:always}
+.cover h1{font-size:28pt;color:#0a2540;margin:30pt 0 10pt;font-weight:700;letter-spacing:-.5pt}
+.cover h2{font-size:14pt;color:#1e88e5;font-weight:500;margin-bottom:40pt}
+.cover .meta{margin-top:60pt;text-align:left;display:inline-block;border-top:2pt solid #1e88e5;padding-top:20pt}
+.cover .meta div{margin:6pt 0;font-size:11pt}
+.cover .meta b{color:#0a2540;display:inline-block;width:140pt}
+.section{padding:0 40pt;margin-bottom:24pt;page-break-inside:avoid}
+.section h2{font-size:16pt;color:#0a2540;border-bottom:2pt solid #1e88e5;padding-bottom:6pt;margin:24pt 0 12pt}
+.section h3{font-size:13pt;color:#1c3d5a;margin:14pt 0 6pt}
+.section p{margin:6pt 0;text-align:justify}
+table{border-collapse:collapse;width:100%;margin:10pt 0;font-size:10pt}
+th{background:#0a2540;color:#fff;text-align:left;padding:7pt 9pt;font-weight:600;font-size:9pt}
+td{padding:6pt 9pt;border-bottom:1pt solid #ddd;vertical-align:top}
+tr.crit{background:#ffebee}
+.kpi-row{display:flex;gap:12pt;margin:12pt 0;flex-wrap:wrap}
+.kpi-box{flex:1;min-width:140pt;border:1pt solid #ddd;border-left:4pt solid #1e88e5;padding:10pt 14pt;border-radius:4pt;background:#fafbfc}
+.kpi-box.danger{border-left-color:#c62828}
+.kpi-box.warning{border-left-color:#ef6c00}
+.kpi-box.success{border-left-color:#2e7d32}
+.kpi-box .lbl{font-size:9pt;color:#52606d;text-transform:uppercase;letter-spacing:.3pt;font-weight:600}
+.kpi-box .val{font-size:20pt;color:#0a2540;font-weight:700;margin:4pt 0 0;letter-spacing:-.3pt}
+.tag-bajo{background:#e8f5e9;color:#2e7d32;padding:2pt 7pt;border-radius:8pt;font-size:9pt;font-weight:600}
+.tag-medio{background:#fff8e1;color:#a5710b;padding:2pt 7pt;border-radius:8pt;font-size:9pt;font-weight:600}
+.tag-alto{background:#fff3e0;color:#ef6c00;padding:2pt 7pt;border-radius:8pt;font-size:9pt;font-weight:600}
+.tag-critico{background:#ffebee;color:#c62828;padding:2pt 7pt;border-radius:8pt;font-size:9pt;font-weight:600}
+.footer{font-size:8pt;color:#90a4ae;text-align:center;padding:14pt 40pt;border-top:1pt solid #ddd;margin-top:30pt}
+.pagebreak{page-break-before:always}
+.note{background:#e3f2fd;border-left:4pt solid #1e88e5;padding:10pt 14pt;margin:12pt 0;font-size:10pt;color:#0a2540}
+</style>`;
+
+let html=`<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><title>Informe Ejecutivo</title>${css}</head><body>`;
+
+// CARÁTULA
+html+=`<div class="cover">
+<div style="font-size:10pt;color:#1e88e5;letter-spacing:3pt;text-transform:uppercase;font-weight:600">${esc(entidad)}</div>
+<h1>Informe Ejecutivo de Gestión de Riesgo Operacional</h1>
+<h2>${esc(periodo)}</h2>
+<div style="font-size:10pt;color:#52606d;margin-top:14pt">Elaborado conforme a los marcos de Basilea II/III, COSO ERM e ISO 31000</div>
+<div class="meta">
+<div><b>Período:</b> ${esc(periodo)}</div>
+<div><b>Entidad:</b> ${esc(entidad)}</div>
+<div><b>Elaborado por:</b> ${esc(autor)}</div>
+<div><b>Dirigido a:</b> ${esc(dirigido)}</div>
+<div><b>Fecha de emisión:</b> ${fecha}</div>
+<div><b>Versión:</b> 1.0</div>
+</div>
+</div>`;
+
+// 1. RESUMEN EJECUTIVO
+html+=`<div class="section"><h2>1. Resumen Ejecutivo</h2>
+<p>El presente informe consolida el perfil de riesgo operacional de <b>${esc(entidad)}</b> al cierre del período <b>${esc(periodo)}</b>, sobre la base de <b>${total} riesgos</b> identificados y evaluados, de los cuales <b>${criticos.length} se encuentran en nivel Crítico</b> y <b>${fueraAp.length} fuera del apetito de riesgo</b> definido por la organización.</p>
+<p>La exposición monetaria agregada del portafolio (calculada como Probabilidad × Impacto financiero residual) asciende a <b>${fmtMoney(expFin)}</b>, con una efectividad promedio de controles del <b>${efAvg}%</b> y un nivel de mitigación del <b>${mitigacion.toFixed(1)}%</b> respecto del riesgo inherente. La pérdida neta acumulada en el período alcanza <b>${fmtMoney(perdidaNeta)}</b>.</p>
+${notas?`<div class="note"><b>Comentario ejecutivo:</b> ${esc(notas)}</div>`:''}
+<div class="kpi-row">
+<div class="kpi-box"><div class="lbl">Total Riesgos</div><div class="val">${total}</div></div>
+<div class="kpi-box danger"><div class="lbl">Críticos</div><div class="val">${criticos.length}</div></div>
+<div class="kpi-box warning"><div class="lbl">Fuera de Apetito</div><div class="val">${fueraAp.length}</div></div>
+<div class="kpi-box danger"><div class="lbl">Exposición Financiera</div><div class="val">${fmtMoney(expFin)}</div></div>
+</div>
+<div class="kpi-row">
+<div class="kpi-box success"><div class="lbl">Controles Efectivos</div><div class="val">${efAvg}%</div></div>
+<div class="kpi-box success"><div class="lbl">% Mitigación</div><div class="val">${mitigacion.toFixed(0)}%</div></div>
+<div class="kpi-box warning"><div class="lbl">KRIs Críticos</div><div class="val">${krisCrit}</div></div>
+<div class="kpi-box danger"><div class="lbl">Planes Vencidos</div><div class="val">${planesVenc}</div></div>
+</div>
+</div>`;
+
+// 2. CONTEXTO Y ALCANCE
+html+=`<div class="section"><h2>2. Contexto y Alcance</h2>
+<p>Este informe presenta el estado consolidado de la gestión de riesgo operacional bajo la responsabilidad de la <b>Gerencia de Riesgos</b>. El alcance incluye los procesos críticos de la organización, las unidades de negocio relacionadas y las cuatro categorías de impacto evaluadas: <b>Financiero, Operativo, Regulatorio y Reputacional</b>.</p>
+<p>La información se actualiza con frecuencia trimestral y se integra con los reportes de eventos de pérdida (OLD), indicadores clave de riesgo (KRI), planes de mitigación y resultados de las pruebas de efectividad de controles.</p>
+</div>`;
+
+// 3. MARCO METODOLÓGICO
+html+=`<div class="section"><h2>3. Marco Metodológico</h2>
+<p>La evaluación de riesgos se realiza considerando los lineamientos de:</p>
+<ul>
+<li><b>Basilea II / III:</b> 7 categorías de eventos de pérdida y 4 factores de riesgo (Personas, Procesos, Tecnología, Eventos Externos).</li>
+<li><b>COSO ERM:</b> integración de la gestión de riesgos con la estrategia y el desempeño organizacional.</li>
+<li><b>ISO 31000:</b> principios y directrices para la gestión sistemática del riesgo.</li>
+<li><b>Normativa SBS / SMV:</b> requerimientos locales aplicables a entidades financieras.</li>
+</ul>
+<p>La calificación de cada riesgo se determina mediante una matriz 5×5 cruzando <b>Frecuencia</b> (probabilidad por deciles: <10%, 10-25%, 25-50%, 50-75%, >75%) con <b>Impacto</b> en cuatro dimensiones. La exposición monetaria se calcula como (Frecuencia % × Impacto máximo del tier).</p>
+</div>`;
+
+// 4. KPIs PRINCIPALES (ya en sección 1)
+
+// 5. MAPA DE CALIFICACIÓN
+html+=`<div class="section pagebreak"><h2>4. Mapa de Calificación de Riesgos</h2>
+<p>La siguiente matriz refleja la distribución del portafolio de riesgos según frecuencia × impacto financiero residual:</p>
+<table><tr><th>Frecuencia / Impacto</th>${getTiers('Financiero').slice(1).map(t=>`<th>${t.label}</th>`).join('')}</tr>`;
+for(let imp=5;imp>=1;imp--){
+html+=`<tr><th style="background:#1c3d5a">${PROB_LABELS[imp]} (${PROB_PCT_LABELS[imp]})</th>`;
+for(let pro=1;pro<=5;pro++){
+const cnt=F.filter(r=>+r.Probabilidad_Residual===imp&&impactValue(r,'Financiero','Res')===pro).length;
+const lvl=hmLevelPI(imp,pro);const cls=lvl==='Crítico'?'tag-critico':lvl==='Alto'?'tag-alto':lvl==='Medio'?'tag-medio':'tag-bajo';
+html+=`<td style="text-align:center"><span class="${cls}">${cnt}</span></td>`;
+}
+html+='</tr>';
+}
+html+='</table></div>';
+
+// 6. TOP RIESGOS CRÍTICOS
+html+=`<div class="section"><h2>5. Top 10 Riesgos Críticos</h2>
+<table><tr><th>#</th><th>ID</th><th>Riesgo</th><th>Proceso</th><th>Causa</th><th>Exposición</th><th>Estado</th></tr>`;
+topCrit.forEach((r,i)=>{
+html+=`<tr class="crit"><td>${i+1}</td><td>${esc(r.ID_Riesgo)}</td><td>${esc(r.Riesgo_Operacional)}</td><td>${esc(r.Proceso)}</td><td>${esc(r.Causa||'')}</td><td><b>${fmtMoney(exposure(r,'Financiero','Res'))}</b></td><td>${esc(r.Estado_Riesgo)}</td></tr>`;
+});
+html+='</table></div>';
+
+// 7. EXPOSICIÓN POR PROCESO
+html+=`<div class="section"><h2>6. Exposición por Proceso</h2>
+<p>Los siguientes procesos concentran la mayor exposición financiera del portafolio:</p>
+<table><tr><th>#</th><th>Proceso</th><th># Riesgos</th><th>Críticos</th><th>Exposición $</th><th>% Mitigación</th></tr>`;
+procs.forEach((p,i)=>{html+=`<tr><td>${i+1}</td><td>${esc(p.proc)}</td><td>${p.n}</td><td>${p.critico}</td><td><b>${fmtMoney(p.exposicion)}</b></td><td>${p.mitigacion.toFixed(0)}%</td></tr>`});
+html+='</table></div>';
+
+// 8. ANÁLISIS POR CATEGORÍA DE IMPACTO
+html+=`<div class="section pagebreak"><h2>7. Análisis por Categoría de Impacto</h2>
+<p>La organización monitorea cuatro dimensiones de impacto, dado que un único evento puede materializarse simultáneamente en varias categorías. El cuadro resume la exposición agregada por categoría:</p>
+<table><tr><th>Categoría</th><th>Exposición / Nivel</th><th>Críticos</th><th>Altos</th><th>Indicador</th></tr>`;
+expCats.forEach(c=>{
+const ind=c.cat==='Financiero'?fmtMoney(c.total):c.cat==='Operativo'?(c.total<24?c.total.toFixed(1)+'h':(c.total/24).toFixed(1)+'d'):'Nivel '+c.total.toFixed(1);
+html+=`<tr><td><b>${c.cat}</b></td><td>${ind}</td><td>${c.crit}</td><td>${c.alto}</td><td>${c.cat==='Financiero'?'Pérdida monetaria':c.cat==='Operativo'?'Tiempo de interrupción':c.cat==='Regulatorio'?'Severidad sanción':'Alcance reputacional'}</td></tr>`;
+});
+html+='</table></div>';
+
+// 9. CAUSAS
+html+=`<div class="section"><h2>8. Causas Más Frecuentes</h2>
+<p>El análisis por causa raíz, vinculado al factor de riesgo, permite priorizar acciones de mitigación estructurales:</p>
+<table><tr><th>#</th><th>Factor · Causa</th><th># Riesgos</th></tr>`;
+topCausas.forEach((c,i)=>{html+=`<tr><td>${i+1}</td><td>${esc(c[0])}</td><td>${c[1]}</td></tr>`});
+html+='</table></div>';
+
+// 10. EVOLUCIÓN TRIMESTRAL
+const FH=F.filter(r=>r.Historial&&r.Historial.length);
+if(FH.length){
+const byQ=QUARTERS.map(q=>{
+let sR=0,n=0,c=0;
+FH.forEach(r=>{const h=r.Historial.find(x=>x.Trimestre===q);if(h){sR+=+h.ScoreR;n++;if(hmLevelPI(h.ProbR,h.ImpR)==='Crítico')c++;}});
+return {q,n,c,avg:n?sR/n:0};
+});
+html+=`<div class="section"><h2>9. Evolución Trimestral</h2>
+<p>El siguiente cuadro presenta la evolución del perfil de riesgo a lo largo de los últimos 10 trimestres:</p>
+<table><tr><th>Trimestre</th><th># Riesgos</th><th>Críticos</th><th>Score Prom.</th><th>Δ vs Anterior</th></tr>`;
+byQ.forEach((q,i)=>{const prev=i>0?byQ[i-1]:null;const d=prev?q.avg-prev.avg:null;html+=`<tr><td><b>${q.q}</b></td><td>${q.n}</td><td>${q.c}</td><td>${q.avg.toFixed(2)}</td><td>${d==null?'–':(d>0?'+':'')+d.toFixed(2)}</td></tr>`});
+html+='</table></div>';
+}
+
+// 11. CONTROLES
+html+=`<div class="section"><h2>10. Estado de Controles</h2>
+<p>La efectividad promedio del marco de controles es de <b>${efAvg}%</b>. Se identificaron <b>${ctrl.filter(r=>+r.Efectividad_Control<60).length} controles débiles</b> (efectividad menor a 60%) asociados a riesgos de nivel Alto o Crítico, que requieren atención prioritaria.</p>
+<p>El nivel de mitigación promedio del portafolio respecto del riesgo inherente alcanza el <b>${mitigacion.toFixed(1)}%</b>, evidenciando el efecto neto de los controles implementados sobre la exposición original.</p>
+</div>`;
+
+// 12. KRIs
+html+=`<div class="section"><h2>11. Indicadores Clave de Riesgo (KRIs)</h2>
+<p>Se monitorean <b>${ctrl.length} indicadores clave de riesgo</b> de los cuales <b>${krisCrit} se encuentran en estado Crítico</b> superando los umbrales definidos. Estos KRIs requieren intervención inmediata por parte de los responsables de los procesos correspondientes.</p>
+</div>`;
+
+// 13. PLANES
+const planes=F.filter(r=>r.Estado_Plan_Accion);
+const planComp=planes.filter(r=>r.Estado_Plan_Accion==='Completado').length;
+html+=`<div class="section"><h2>12. Planes de Acción y Mitigación</h2>
+<p>De un total de <b>${planes.length} planes de acción</b> activos, el <b>${planes.length?Math.round(planComp*100/planes.length):0}%</b> se encuentra completado, y <b>${planesVenc} planes están vencidos</b> al cierre del período. La gestión de estos planes es responsabilidad de las primeras y segundas líneas de defensa, con seguimiento periódico por el Comité de Riesgos.</p>
+</div>`;
+
+// 14. CONCLUSIONES
+html+=`<div class="section pagebreak"><h2>13. Conclusiones y Recomendaciones</h2>
+<h3>Conclusiones</h3>
+<ul>
+<li>El portafolio de riesgo presenta una exposición financiera consolidada de <b>${fmtMoney(expFin)}</b>, con un nivel de mitigación del ${mitigacion.toFixed(0)}% derivado de los controles implementados.</li>
+<li>${criticos.length} riesgos se mantienen en nivel Crítico, concentrándose principalmente en ${[...new Set(criticos.slice(0,5).map(r=>r.Proceso))].slice(0,3).join(', ')||'diversos procesos'}.</li>
+<li>${fueraAp.length} riesgos exceden el apetito de riesgo definido, requiriendo decisión del Comité respecto a tratamiento (mitigar, transferir, aceptar formalmente o evitar).</li>
+<li>La efectividad promedio de controles del ${efAvg}% sugiere ${efAvg>=75?'un marco de control maduro y operativo':efAvg>=60?'un marco de control adecuado con oportunidades de fortalecimiento':'la necesidad de fortalecer significativamente el marco de control'}.</li>
+</ul>
+<h3>Recomendaciones</h3>
+<ol>
+<li><b>Atención inmediata</b> a los riesgos críticos del Top 10, asignando responsables, fechas compromiso y recursos suficientes.</li>
+<li><b>Revisión del apetito de riesgo</b> para los ${fueraAp.length} riesgos fuera de tolerancia, formalizando aceptación o estableciendo planes de tratamiento.</li>
+<li><b>Reforzamiento de controles débiles</b> en procesos con concentración de riesgos críticos, priorizando aquellos con efectividad menor al 60%.</li>
+<li><b>Atención a planes vencidos</b> mediante repriorización, asignación de recursos y comunicación a las gerencias responsables.</li>
+<li><b>Continuar el monitoreo trimestral</b> de la evolución del perfil de riesgo, con revisión formal en el Comité de Riesgos.</li>
+</ol>
+</div>`;
+
+// 15. ANEXOS
+html+=`<div class="section"><h2>14. Anexos</h2>
+<h3>Anexo I — Glosario</h3>
+<p><b>Frecuencia/Probabilidad:</b> Estimación de la posibilidad de ocurrencia de un evento en un horizonte de 12 meses, expresada por deciles.</p>
+<p><b>Impacto:</b> Magnitud esperada del daño que se materializa en una o más dimensiones (Financiero, Operativo, Regulatorio, Reputacional).</p>
+<p><b>Riesgo Inherente:</b> Exposición antes de considerar el efecto de los controles.</p>
+<p><b>Riesgo Residual:</b> Exposición remanente luego de aplicados los controles.</p>
+<p><b>Apetito de Riesgo:</b> Nivel de riesgo que la organización está dispuesta a aceptar para el cumplimiento de sus objetivos.</p>
+<p><b>Tolerancia:</b> Umbral cuantitativo máximo de variación del apetito declarado.</p>
+<p><b>KRI:</b> Indicador clave de riesgo, métrica predictiva del posible deterioro del perfil de riesgo.</p>
+<h3>Anexo II — Marco Normativo</h3>
+<p>Lineamientos de Basilea para gestión de riesgo operacional · COSO ERM 2017 · ISO 31000:2018 · Normativa de la Superintendencia de Banca, Seguros y AFP (SBS) aplicable a entidades supervisadas.</p>
+</div>`;
+
+html+=`<div class="footer">${esc(entidad)} · Informe confidencial · Distribución restringida al Comité de Riesgos y Gerencia General · Generado el ${fecha}</div>`;
+html+='</body></html>';
+return html;
+}
+
+function previewReport(){const html=buildReportHTML();document.getElementById('reportContent').innerHTML=html.replace(/^[\s\S]*<body>/,'').replace(/<\/body>[\s\S]*$/,'');document.getElementById('reportPreview').style.display='block';}
+function downloadReport(){
+const html=buildReportHTML();
+const blob=new Blob(['﻿',html],{type:'application/msword'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+a.download=`Informe_Ejecutivo_Riesgo_Operacional_${new Date().toISOString().slice(0,10)}.doc`;
+a.click();
+toast('Informe Word descargado','success');
+}
+
+/* =============== NAV =============== */
+const PAGE_TITLES={
+executive:['Resumen Ejecutivo','Comité de Riesgos · Visión consolidada'],
+heatmap:['Mapa de Calor (Riesgos)','Por categoría de impacto'],
+procheatmap:['Mapa de Calor (Procesos)','Posición agregada por proceso'],
+critical:['Riesgos Críticos','Top exposición'],
+quarterly:['Evolución Trimestral','Comparativa periódica'],
+losses:['Eventos de Pérdida','OLD'],
+kris:['KRIs Monitor','Indicadores Clave'],
+controls:['Controles','Inventario y evaluación'],
+factors:['Factores y Causas','Análisis por factor y causa'],
+actions:['Planes de Acción','Mitigación'],
+alerts:['Alertas','Reglas automáticas'],
+report:['Informe Ejecutivo','Generador de reporte Word'],
+matrix:['Matriz Completa','Edición'],
+settings:['Configuración','Datos y opciones']
+};
+function showPage(p){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));document.querySelectorAll('.page').forEach(pg=>pg.classList.toggle('active',pg.id==='page-'+p));const t=PAGE_TITLES[p]||['',''];document.getElementById('pageTitle').textContent=t[0];document.getElementById('pageSub').textContent=t[1];setTimeout(()=>Object.values(CHARTS).forEach(c=>{try{c.resize()}catch(e){}}),100);}
+function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.classList.remove('show'),2400)}
+
+init();
 </script>
 </body>
 </html>
